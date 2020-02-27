@@ -4,24 +4,24 @@ h_gui = 900
 w_col = 400
 
 dim_settings_col = (w_col, h_gui-100)
-dim_display_col = (w_col, h_gui-100)
+dim_display_col = (w_col+100, h_gui-100)
 dim_zoom_col = (w_col, h_gui-100)
 dim_profile_col = (w_col, h_gui-100)
-dim_gui = (w_col*4, h_gui)
+dim_gui = (w_col*4+200, h_gui)
 
 dim_roi = [w_col-50, 100]
 h_load = 100
-dim_analysis = (w_col/2, 200)
-dim_display_opt = (w_col/2, 200)
+dim_analysis = (dim_settings_col[0]/2, 200)
+dim_display_opt = (dim_settings_col[0]/2, 200)
 
-dim_profile = (w_col, 200)
-dim_zoom = (w_col, 200)
+dim_profile = (dim_profile_col[0], 200)
+dim_zoom = (dim_zoom_col[0], 200)
 
 roi_default = [160, 210, 300, 500]
-r00_signal_default = [160, 180, 60, 20]
-r10_signal_default = [160, 220, 60, 20]
-r00_background_default = [160, 200, 60, 20]
-r10_background_default = [160, 240, 60, 20]
+r00_signal_default = [160, 180, 30, 20]
+r10_signal_default = [160, 220, 30, 20]
+r00_background_default = [160, 200, 30, 20]
+r10_background_default = [160, 240, 30, 20]
 
 dim_image = [256, 512]
 

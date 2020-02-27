@@ -46,6 +46,8 @@ class MainWindow(QtGui.QWidget):
 		self.region_params = [{}, {}, {}, {}]
 		self.populate()
 
+		self.frame = "od"
+
 		# self.plotsomething()
 
 	def populate(self):
@@ -157,14 +159,17 @@ class MainWindow(QtGui.QWidget):
 
 	def displayOptionsChanged(self):
 		(frame, vmin, vmax) = self.display_options.getState()
+
+		self.frame = defaults.frame_list[frame]
+
 		self.display.setVlims([vmin, vmax])
 		self.display.setFrame(defaults.frame_list[frame])
-		self.display.replot()
 
 		for w in self.zoom_displays.displays:
 			w.setVlims([vmin, vmax])
 			w.setFrame(defaults.frame_list[frame])
-			w.replot()
+
+		self.roiChanged()
 
 	def roiChanged(self):
 		(main, signal, background) = self.roi.getValues()
@@ -186,8 +191,22 @@ class MainWindow(QtGui.QWidget):
 
 		self.display.replot()
 		for (rp,d,p) in zip(self.region_params, self.zoom_displays.displays, self.profiles.profiles):
-			d.setIntegratedNumber(rp["sum"]*defaults.od_to_number)
-			p.setData([rp["xprofile"], rp["yprofile"]])
+			rp = rp[self.frame]
+
+			if self.frame == "od":
+				d.setIntegratedNumber(rp["sum"]*defaults.od_to_number)
+
+			xline = ((0, defaults.dim_image[0]), (rp["yc"], rp["yc"]))
+			yline = ((rp["xc"], rp["xc"]), (0, defaults.dim_image[1]))
+			d.setCross(xline, yline)
+			d.setOval((rp["xc"], rp["yc"]), 2*rp["sigx"], 2*rp["sigy"])
+
+			xprofile = rp["xprofile"]
+			yprofile = rp["yprofile"]
+			if self.frame == "od":
+				xprofile *= defaults.od_to_number
+				yprofile *= defaults.od_to_number
+			p.setData((xprofile, yprofile))
 			p.setXYRel(rp["xrel"], rp["yrel"])
 			d.replot()
 			p.replot()
@@ -202,7 +221,9 @@ class MainWindow(QtGui.QWidget):
 
 	def analyzeROI(self, roi, index):
 		(xmin, xmax, ymin, ymax) = self.getArrayBounds(roi)
-		data = self.data["od"][ymin:ymax, xmin:xmax]
+		frame = self.frame
+
+		data = self.data[frame][ymin:ymax, xmin:xmax]
 		xaxis = np.arange(xmin, xmax, 1)
 		yaxis = np.arange(ymin, ymax, 1)
 
@@ -213,10 +234,14 @@ class MainWindow(QtGui.QWidget):
 		xcom = np.sum(xprofile*xaxis)/integrated
 		ycom = np.sum(yprofile*yaxis)/integrated
 
-		xsig = np.sqrt(np.sum(xprofile*xaxis**2)/integrated - xcom**2)
-		ysig = np.sqrt(np.sum(yprofile*yaxis**2)/integrated - ycom**2)
+		try:
+			xsig = np.sqrt(np.sum(xprofile*xaxis**2)/integrated - xcom**2)
+			ysig = np.sqrt(np.sum(yprofile*yaxis**2)/integrated - ycom**2)
+		except:
+			xsig = 0
+			ysig = 0
 
-		self.region_params[index] = {
+		d = {
 			"sum": integrated,
 			"xprofile": xprofile,
 			"yprofile": yprofile,
@@ -227,6 +252,8 @@ class MainWindow(QtGui.QWidget):
 			"sigx": xsig,
 			"sigy": ysig
 		}
+
+		self.region_params[index].update({frame: d})
 
 	def makeRect(self, index, roi):
 		x = max(roi[0] - roi[2]/2, 0)

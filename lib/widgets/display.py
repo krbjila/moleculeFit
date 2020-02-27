@@ -6,7 +6,10 @@ import twisted.internet.error
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle, Ellipse
+from matplotlib.lines import Line2D
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 
 from matplotlib import pyplot as plt
 
@@ -59,6 +62,10 @@ class Display(Plot):
 	data = {}
 	patch_parameters = [()]*4
 
+	xline = ((), ())
+	yline = ((), ())
+	oval = {'xy': (0,0), 'w': 0, 'h': 0}
+
 	def __init__(self, dx, dy, use_toolbar=True, use_colorbar=True, title="", title_color='k'):
 		super(Display, self).__init__(use_toolbar)
 		self.setFixedSize(dx, dy)
@@ -99,8 +106,11 @@ class Display(Plot):
 		self.ax.set_ylim((self.ylims[1], self.ylims[0]))
 
 		if self.use_colorbar:
+			# https://stackoverflow.com/a/18195921
+			divider = make_axes_locatable(self.ax)
+			cax = divider.append_axes("right", size="5%", pad=0.05)
 			# Add a horizontal colorbar
-			self.figure.colorbar(im, orientation='horizontal')
+			self.figure.colorbar(im, cax=cax, orientation='vertical')
 
 		# Don't understand patches... probably shouldn't mess with this
 		for (i,pp) in enumerate(self.patch_parameters):
@@ -108,12 +118,24 @@ class Display(Plot):
 				p = Rectangle(*pp, linewidth=defaults.rect_linewidth, edgecolor=defaults.rect_colors[i], facecolor='none')
 				self.ax.add_patch(p)
 
+		self.ax.add_line(Line2D(self.xline[0], self.xline[1], color='C0'))
+		self.ax.add_line(Line2D(self.yline[0], self.yline[1], color='C1'))
+
+		self.ax.add_patch(
+			Ellipse(
+				self.oval['xy'],
+				self.oval['w'],
+				self.oval['h'],
+				edgecolor=self.title_color,
+				facecolor='none')
+			)
+
 		# Need to do the following to get the z data to show up in the toolbar
 		numrows, numcols = np.shape(self.data[self.frame])
 		self.ax.format_coord = make_format_coord(numrows, numcols, self.data[self.frame])
 
 		if self.title:
-			self.ax.set_title(self.title + self.integrated_number, color=self.title_color)
+			self.ax.set_title(self.title + "N = {:.1f}".format(self.integrated_number), color=self.title_color)
 
 		# Update the plot
 		self.canvas.draw()
@@ -131,8 +153,17 @@ class Display(Plot):
 	def setFrame(self, frame):
 		self.frame = frame
 
+	def setCross(self, xline, yline):
+		self.xline = xline
+		self.yline = yline
+
+	def setOval(self, xy, width, height):
+		self.oval['xy'] = xy
+		self.oval['w'] = width
+		self.oval['h'] = height
+
 	def setIntegratedNumber(self, integrated_number):
-		self.integrated_number = "{:.1f}".format(integrated_number)
+		self.integrated_number = integrated_number
 
 	def addPatch(self, index, xy, w, h):
 		self.patch_parameters[index] = (xy, w, h)
