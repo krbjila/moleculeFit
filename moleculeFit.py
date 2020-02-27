@@ -15,7 +15,7 @@ sys.path.append("./lib/")
 sys.path.append("./lib/widgets/")
 sys.path.append("./lib/qt4reactor/")
 
-from display import Display, Profiles, Zooms
+from display import PlotGroup
 from loadbar import LoadBar, Autoloader
 from roi import ROISelectors
 from analysis import AnalysisOptions
@@ -53,12 +53,12 @@ class MainWindow(QtGui.QWidget):
 	def populate(self):
 		self.layout = QtGui.QHBoxLayout()
 
-		self.profiles = Profiles()
-		self.zoom_displays = Zooms()
+		# self.profiles = Profiles()
+		# self.zoom_displays = Zooms()
 		self.loadBar = LoadBar()
 		self.loadBar.loadSignal.connect(self.load)
 
-		self.display = Display(defaults.dim_display_col[0], defaults.dim_display_col[1])
+		# self.display = Display(defaults.dim_display_col[0], defaults.dim_display_col[1])
 
 		self.roi = ROISelectors()
 		self.roi.changed.connect(self.roiChanged)
@@ -107,13 +107,18 @@ class MainWindow(QtGui.QWidget):
 
 		self.left_layout.addLayout(self.bottom_box)
 
-		self.center_layout = QtGui.QVBoxLayout()
-		self.center_layout.addWidget(self.display)
+		# self.center_layout = QtGui.QVBoxLayout()
+		# self.center_layout.addWidget(self.display)
 
 		self.layout.addLayout(self.left_layout)
-		self.layout.addLayout(self.center_layout)
-		self.layout.addWidget(self.zoom_displays)
-		self.layout.addWidget(self.profiles)
+
+		self.plotGroup = PlotGroup()
+		self.plotGroup.setFixedSize(defaults.dim_plot_group[0], defaults.dim_plot_group[1])
+		self.layout.addWidget(self.plotGroup)
+
+		# self.layout.addLayout(self.center_layout)
+		# self.layout.addWidget(self.zoom_displays)
+		# self.layout.addWidget(self.profiles)
 		self.setLayout(self.layout)
 
 
@@ -122,7 +127,7 @@ class MainWindow(QtGui.QWidget):
 		self.currentFilePath = path
 
 		if path:
-			try:
+			# try:
 				self.raw = np.loadtxt(path, delimiter=',')
 				(dy, dx) =  np.shape(self.raw)
 				self.raw = np.reshape(self.raw, (defaults.n_frames, dy/defaults.n_frames, dx))
@@ -133,17 +138,23 @@ class MainWindow(QtGui.QWidget):
 
 				self.calcOD()
 
-				self.display.setData(self.data)
-				# self.display.replot()
-				for w in self.profiles.profiles:
-					w.setData(self.data)
-					# w.replot()
-				for w in self.zoom_displays.displays:
-					w.setData(self.data)
-					# w.replot()
+				self.plotGroup.setData("m", 0, self.data)
+				for i in range(self.plotGroup.grid_size):
+					self.plotGroup.setData("d", i, self.data)
+
 				self.roiChanged()
-			except Exception as e:
-				print e
+
+				# self.display.setData(self.data)
+				# # self.display.replot()
+				# for w in self.profiles.profiles:
+				# 	w.setData(self.data)
+				# 	# w.replot()
+				# for w in self.zoom_displays.displays:
+				# 	w.setData(self.data)
+				# 	# w.replot()
+				# self.roiChanged()
+			# except Exception as e:
+			# 	print e
 
 	def calcOD(self):
 		# Calculate difference and od frames
@@ -162,54 +173,93 @@ class MainWindow(QtGui.QWidget):
 
 		self.frame = defaults.frame_list[frame]
 
-		self.display.setVlims([vmin, vmax])
-		self.display.setFrame(defaults.frame_list[frame])
+		self.plotGroup.setVlims([vmin, vmax])
+		self.plotGroup.setFrame("m", 0, self.frame)
+		for i in range(self.plotGroup.grid_size):
+			self.plotGroup.setFrame("d", i, self.frame)
 
-		for w in self.zoom_displays.displays:
-			w.setVlims([vmin, vmax])
-			w.setFrame(defaults.frame_list[frame])
+		# self.display.setVlims([vmin, vmax])
+		# self.display.setFrame(defaults.frame_list[frame])
+
+		# for w in self.zoom_displays.displays:
+		# 	w.setVlims([vmin, vmax])
+		# 	w.setFrame(defaults.frame_list[frame])
 
 		self.roiChanged()
 
 	def roiChanged(self):
 		(main, signal, background) = self.roi.getValues()
 
-		self.display.setROI(main)
-
+		self.plotGroup.setROI("m", 0, main)
 		for (i, (s, b)) in enumerate(zip(signal, background)):
-			self.zoom_displays.displays[2*i].setROI(s)
-			self.zoom_displays.displays[2*i + 1].setROI(b)
+			self.plotGroup.setROI("d", 2*i, s)
+			self.plotGroup.setROI("d", 2*i+1, b)
 
 			self.analyzeROI(s, 2*i)
 			self.analyzeROI(b, 2*i+1)
 
-			ps = self.makeRect(2*i, s)
-			pb = self.makeRect(2*i+1, b)
+			ps = self.makeRect(2*i, s) + (defaults.rect_colors[2*i],)
+			pb = self.makeRect(2*i+1, b) + (defaults.rect_colors[2*i+1],)
 
-			self.display.addPatch(2*i, *ps)
-			self.display.addPatch(2*i+1, *pb)
+			self.plotGroup.setRectMain(2*i, *ps)
+			self.plotGroup.setRectMain(2*i+1, *pb)
 
-		self.display.replot()
-		for (rp,d,p) in zip(self.region_params, self.zoom_displays.displays, self.profiles.profiles):
+		for (i, rp) in enumerate(self.region_params):
 			rp = rp[self.frame]
 
 			if self.frame == "od":
-				d.setIntegratedNumber(rp["sum"]*defaults.od_to_number)
+				self.plotGroup.setNumber("d", i, rp["sum"]*defaults.od_to_number)
 
-			xline = ((0, defaults.dim_image[0]), (rp["yc"], rp["yc"]))
-			yline = ((rp["xc"], rp["xc"]), (0, defaults.dim_image[1]))
-			d.setCross(xline, yline)
-			d.setOval((rp["xc"], rp["yc"]), 2*rp["sigx"], 2*rp["sigy"])
+			self.plotGroup.setCross("d", i, rp["xc"], rp["yc"])
+			self.plotGroup.setOvalDisplay(i, (rp["xc"], rp["yc"]), 2*rp["sigx"], 2*rp["sigy"], defaults.rect_colors[i])
 
 			xprofile = rp["xprofile"]
 			yprofile = rp["yprofile"]
 			if self.frame == "od":
 				xprofile *= defaults.od_to_number
 				yprofile *= defaults.od_to_number
-			p.setData((xprofile, yprofile))
-			p.setXYRel(rp["xrel"], rp["yrel"])
-			d.replot()
-			p.replot()
+			self.plotGroup.setData("p", i, (xprofile, yprofile))
+			self.plotGroup.setXYRelProfile(i, (rp["xrel"], rp["yrel"]))
+		self.plotGroup.replot()
+
+		# (main, signal, background) = self.roi.getValues()
+
+		# self.display.setROI(main)
+
+		# for (i, (s, b)) in enumerate(zip(signal, background)):
+		# 	self.zoom_displays.displays[2*i].setROI(s)
+		# 	self.zoom_displays.displays[2*i + 1].setROI(b)
+
+		# 	self.analyzeROI(s, 2*i)
+		# 	self.analyzeROI(b, 2*i+1)
+
+		# 	ps = self.makeRect(2*i, s)
+		# 	pb = self.makeRect(2*i+1, b)
+
+		# 	self.display.addPatch(2*i, *ps)
+		# 	self.display.addPatch(2*i+1, *pb)
+
+		# self.display.replot()
+		# for (rp,d,p) in zip(self.region_params, self.zoom_displays.displays, self.profiles.profiles):
+		# 	rp = rp[self.frame]
+
+		# 	if self.frame == "od":
+		# 		d.setIntegratedNumber(rp["sum"]*defaults.od_to_number)
+
+		# 	xline = ((0, defaults.dim_image[0]), (rp["yc"], rp["yc"]))
+		# 	yline = ((rp["xc"], rp["xc"]), (0, defaults.dim_image[1]))
+		# 	d.setCross(xline, yline)
+		# 	d.setOval((rp["xc"], rp["yc"]), 2*rp["sigx"], 2*rp["sigy"])
+
+		# 	xprofile = rp["xprofile"]
+		# 	yprofile = rp["yprofile"]
+		# 	if self.frame == "od":
+		# 		xprofile *= defaults.od_to_number
+		# 		yprofile *= defaults.od_to_number
+		# 	p.setData((xprofile, yprofile))
+		# 	p.setXYRel(rp["xrel"], rp["yrel"])
+		# 	d.replot()
+		# 	p.replot()
 
 	def getArrayBounds(self, roi):
 		xmin = max(roi[0] - roi[2]/2, 0)
@@ -259,33 +309,6 @@ class MainWindow(QtGui.QWidget):
 		x = max(roi[0] - roi[2]/2, 0)
 		y = max(roi[1] - roi[3]/2, 0)
 		return ((x,y), roi[2], roi[3])
-
-
-	def plotsomething(self):
-
-		self.autoloader = Autoloader()
-		raw = self.autoloader.load("{}ixon_{}.csv".format(file_path, file_number))
-		(dy, dx) =  np.shape(raw)
-		raw = np.reshape(raw, (n_frames, dy/n_frames, dx))
-
-		self.data = {}
-		for k,v in frame_map.items():
-			self.data[k] = raw[v]
-
-		# Calculate difference and od frames
-		s1 = (self.data["shadow"] - self.data["dark"]).astype(np.float64)
-		s2 = (self.data["light"] - self.data["dark"]).astype(np.float64)
-		od = -np.log(s1 / s2) + (s2 - s1) / CSatEff
-
-		od[od == np.inf] = MAX_OD
-		od[od == -np.inf] = -MAX_OD
-		od[od == np.nan] = 0
-
-		self.data["od"] = od
-
-		self.display.plot(self.data["od"])
-		self.profiles.plot([self.data["od"][0]]*4 + [self.data["od"][1]]*4)
-		self.zoom_displays.plot([self.data["od"]]*4)
 
 
 if __name__ == '__main__':

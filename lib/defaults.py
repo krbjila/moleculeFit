@@ -7,7 +7,9 @@ dim_settings_col = (w_col, h_gui-100)
 dim_display_col = (w_col+100, h_gui-100)
 dim_zoom_col = (w_col, h_gui-100)
 dim_profile_col = (w_col, h_gui-100)
-dim_gui = (w_col*4+200, h_gui)
+dim_gui = (w_col*4+50, h_gui)
+
+dim_plot_group = (w_col*3, h_gui)
 
 dim_roi = [w_col-50, 100]
 h_load = 100
@@ -26,6 +28,7 @@ r10_background_default = [160, 240, 30, 20]
 dim_image = [256, 512]
 
 rect_linewidth = 2
+oval_linewidth = 2
 rect_colors = ['b', 'k', 'r', 'y']
 
 n_frames = 4
