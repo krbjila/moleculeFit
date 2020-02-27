@@ -50,20 +50,27 @@ class DisplayOptions(QtGui.QWidget):
 		self.vmaxLabel = QtGui.QLabel("Max")
 		self.vmaxEdit = QtGui.QLineEdit("1.0")
 		self.vmaxEdit.editingFinished.connect(self.edited)
-		# self.vmaxEdit = QtGui.QDoubleSpinBox()
-		# self.vmaxEdit.valueChanged.connect(self.edited)
-		# self.vmaxEdit.setSingleStep(self.odStep)
-		# self.vmaxEdit.setRange(*self.odLimits)
-		# self.vmaxEdit.setValue(1.0)
 
 		self.vminLabel = QtGui.QLabel("Min")
 		self.vminEdit = QtGui.QLineEdit("0.0")
 		self.vminEdit.editingFinished.connect(self.edited)
-		# self.vminEdit = QtGui.QDoubleSpinBox()
-		# self.vminEdit.valueChanged.connect(self.edited)
-		# self.vminEdit.setSingleStep(self.odStep)
-		# self.vminEdit.setRange(*self.odLimits)
-		# self.vminEdit.setValue(0)
+
+
+		crosshairs = QtGui.QGroupBox("Crosshairs")
+		gl = QtGui.QGridLayout()
+		self.xLabel = QtGui.QLabel("x")
+		self.xEdit = QtGui.QLineEdit("0.0")
+		self.xEdit.editingFinished.connect(self.edited)
+
+		self.yLabel = QtGui.QLabel("y")
+		self.yEdit = QtGui.QLineEdit("0.0")
+		self.yEdit.editingFinished.connect(self.edited)
+
+		gl.addWidget(self.xLabel, 0, 0)
+		gl.addWidget(self.xEdit, 0, 1)
+		gl.addWidget(self.yLabel, 1, 0)
+		gl.addWidget(self.yEdit, 1, 1)
+		crosshairs.setLayout(gl)
 
 		self.group_layout.addWidget(self.frameLabel, 0, 0, 1, 1)
 		self.group_layout.addWidget(self.frameCombo, 0, 1, 1, 1)
@@ -74,9 +81,12 @@ class DisplayOptions(QtGui.QWidget):
 		self.group_layout.addWidget(self.vmaxLabel, 2, 0, 1, 1)
 		self.group_layout.addWidget(self.vmaxEdit, 2, 1, 1, 1)
 
+		self.group_layout.addWidget(crosshairs, 3, 0, 2, 2)
+
 		self.group_layout.setColumnStretch(2, 1)
 
 		self.group.setLayout(self.group_layout)
+		self.group.setStyleSheet(defaults.style_sheet)
 
 		self.layout.addWidget(self.group)
 		self.setLayout(self.layout)
@@ -87,10 +97,10 @@ class DisplayOptions(QtGui.QWidget):
 		else:
 			vals = self.od
 
-		self.setValues(vals[0], vals[1])
+		self.setVlims(vals[0], vals[1])
 		self.edited()
 
-	def setValues(self, vmin, vmax):
+	def setVlims(self, vmin, vmax):
 		minmax = self.minmax(vmin, vmax)
 
 		if self.frameCombo.currentIndex():
@@ -100,23 +110,30 @@ class DisplayOptions(QtGui.QWidget):
 			self.vminEdit.setText("{:.2f}".format(minmax[0]))
 			self.vmaxEdit.setText("{:.2f}".format(minmax[1]))
 
+	def setCrosshairs(self, x, y):
+		self.xEdit.setText("{:.1f}".format(x))
+		self.yEdit.setText("{:.1f}".format(y))
+
 	def edited(self):
 		try:
 			vmin = float(self.vminEdit.text())
 			vmax = float(self.vmaxEdit.text())
 
 			minmax = self.minmax(vmin, vmax)
-			self.setValues(vmin, vmax)
+			self.setVlims(vmin, vmax)
 
 			if self.frameCombo.currentIndex():
 				self.counts = [minmax[0], minmax[1]]
 			else:
 				self.od = [minmax[0], minmax[1]]
 
+			x = float(self.xEdit.text())
+			y = float(self.yEdit.text())
+			self.setCrosshairs(x, y)
+
 			self.changed.emit()
-		# Just don't 
-		except:
-			pass
+		except Exception as e:
+			print "Exception in DisplayOptions.edited: "
 
 	def minmax(self, v1, v2):
 		temp_max = max(v1, v2)
@@ -124,4 +141,4 @@ class DisplayOptions(QtGui.QWidget):
 		return (temp_min, temp_max)
 
 	def getState(self):
-		return (self.frameCombo.currentIndex(), float(self.vminEdit.text()), float(self.vmaxEdit.text()))
+		return (self.frameCombo.currentIndex(), float(self.vminEdit.text()), float(self.vmaxEdit.text()), float(self.xEdit.text()), float(self.yEdit.text()))

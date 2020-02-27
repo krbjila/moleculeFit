@@ -27,6 +27,8 @@ sys.path.append('../')
 import defaults
 
 class PlotGroup(QtGui.QWidget):
+	crosshairs_placed = pyqtSignal(float, float)
+
 	grid_size = 4
 
 	template = {
@@ -34,13 +36,15 @@ class PlotGroup(QtGui.QWidget):
 		"rects": [None]*grid_size,
 		"ovals": [],
 		"cross": (),
+		"crossColors": ("C0", "C1"),
 		"lims": ((), ()),
 		"frame": "od",
-		"data": [],
+		"data": {},
 		"title": "",
 		"number": 0,
 		"color": "",
 		"colorbar": False,
+		"clickable": False,
 		"xyRel": (0,0),
 	}
 
@@ -57,6 +61,8 @@ class PlotGroup(QtGui.QWidget):
 
 		self.main = deepcopy(self.template)
 		self.main["colorbar"] = True
+		self.main["clickable"] = True
+		self.main["crossColors"] = ("k", "k")
 
 		self.displays = [deepcopy(self.template) for i in range(self.grid_size)]
 		self.profiles = [deepcopy(self.template) for i in range(self.grid_size)]
@@ -70,6 +76,7 @@ class PlotGroup(QtGui.QWidget):
 
 		self.figure = Figure(frameon=False, tight_layout=True)
 		self.canvas = FigureCanvas(self.figure)
+		self.canvas.mpl_connect('button_press_event', self.clicked)
 
 		gridspec = GridSpec(self.grid_size, self.grid_size, figure=self.figure)
 
@@ -87,11 +94,26 @@ class PlotGroup(QtGui.QWidget):
 		self.layout.addWidget(self.canvas)
 		self.setLayout(self.layout)
 
+	def clicked(self, event):
+		if self.main["data"]:
+			# On double-click, remove crosshairs
+			if event.dblclick:
+				for w in [self.main] + self.displays + self.profiles:
+					if w["ax"] == event.inaxes and w["clickable"]:
+						w["cross"] = ()
+						self.replot()
+			# On single-clikc, place crosshairs
+			else:
+				for w in [self.main] + self.displays + self.profiles:
+					if w["ax"] == event.inaxes and w["clickable"]:
+						w["cross"] = (event.xdata, event.ydata)
+						self.replot()
+						self.crosshairs_placed.emit(event.xdata, event.ydata)
+
 	def setVlims(self, vlims):
 		self.vlims = vlims
 
 	def replot(self):
-		print self.displays
 		self.replotImage(self.main)
 		for (d,p) in zip(self.displays, self.profiles):
 			self.replotImage(d)
@@ -158,6 +180,7 @@ class PlotGroup(QtGui.QWidget):
 		rects = properties["rects"]
 		ovals = properties["ovals"]
 		cross = properties["cross"]
+		crossColors = properties["crossColors"]
 		title = properties["title"]
 		color = properties["color"]
 		number = properties["number"]
@@ -179,7 +202,7 @@ class PlotGroup(QtGui.QWidget):
 		if colorbar:
 			if self.colorbar:
 				self.colorbar.remove()
-				
+
 			# https://stackoverflow.com/a/18195921
 			divider = make_axes_locatable(ax)
 			cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -198,8 +221,8 @@ class PlotGroup(QtGui.QWidget):
 		if cross:
 			xline = ((0, defaults.dim_image[0]), (cross[1], cross[1]))
 			yline = ((cross[0], cross[0]), (0, defaults.dim_image[1]))
-			ax.add_line(Line2D(xline[0], xline[1], color='C0'))
-			ax.add_line(Line2D(yline[0], yline[1], color='C1'))
+			ax.add_line(Line2D(xline[0], xline[1], color=crossColors[0]))
+			ax.add_line(Line2D(yline[0], yline[1], color=crossColors[1]))
 
 
 		# # Need to do the following to get the z data to show up in the toolbar

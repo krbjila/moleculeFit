@@ -32,6 +32,7 @@ class ROISelectors(QtGui.QWidget):
 
 		self.roi = Region("ROI for big thing", False)
 		self.roi.setValues(defaults.roi_default)
+		self.roi.setStyleSheet(defaults.style_sheet)
 
 		self.signal_roi = [
 			Region("Signal region " + defaults.state_names[0], False),
@@ -53,6 +54,7 @@ class ROISelectors(QtGui.QWidget):
 			gl.addWidget(w1)
 			gl.addWidget(w2)
 			groupbox.setLayout(gl)
+			groupbox.setStyleSheet(defaults.style_sheet)
 
 			self.layout.addWidget(groupbox)
 

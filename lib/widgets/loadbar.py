@@ -58,6 +58,7 @@ class LoadBar(QtGui.QWidget):
 		self.group_layout.addLayout(gl1)
 		self.group_layout.addLayout(gl2)
 		self.group.setLayout(self.group_layout)
+		self.group.setStyleSheet(defaults.style_sheet)
 
 		self.layout.addWidget(self.group)
 

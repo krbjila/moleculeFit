@@ -26,15 +26,6 @@ import qtreactor.pyqt4reactor
 qtreactor.pyqt4reactor.install()
 from twisted.internet import reactor
 
-# Temporary
-file_path = "K:\\currentmembers\\matsuda\\test_shots_new_sequence\\"
-file_number = 0
-
-stack_index = 0
-
-CSatEff = 10000
-MAX_OD = 20
-
 
 class MainWindow(QtGui.QWidget):
 	def __init__(self, args):
@@ -44,62 +35,36 @@ class MainWindow(QtGui.QWidget):
 
 		self.raw = []
 		self.region_params = [{}, {}, {}, {}]
+		self.initialize()
 		self.populate()
 
 		self.frame = "od"
 
-		# self.plotsomething()
+	def initialize(self):
 
-	def populate(self):
-		self.layout = QtGui.QHBoxLayout()
-
-		# self.profiles = Profiles()
-		# self.zoom_displays = Zooms()
 		self.loadBar = LoadBar()
 		self.loadBar.loadSignal.connect(self.load)
 
-		# self.display = Display(defaults.dim_display_col[0], defaults.dim_display_col[1])
-
 		self.roi = ROISelectors()
 		self.roi.changed.connect(self.roiChanged)
-		# self.roi = Region("ROI for big thing", False)
-		# self.roi.setValues(defaults.roi_default)
-		# self.roi.changed.connect(self.mainROIChanged)
-
-		# self.signal_roi = [
-		# 	Region("Signal region " + defaults.state_names[0], False),
-		# 	Region("Signal region " + defaults.state_names[1], False)]
-		# self.signal_roi[0].setValues(defaults.r00_signal_default)
-		# self.signal_roi[0].changed.connect(lambda: self.signalROIChanged(0))
-
-		# self.signal_roi[1].setValues(defaults.r10_signal_default)
-		# self.signal_roi[1].changed.connect(lambda: self.signalROIChanged(1))
-
-		# self.background_roi = [
-		# 	Region("Background region " + defaults.state_names[0], True),
-		# 	Region("Background region " + defaults.state_names[1], True)]
-		# self.background_roi[0].setValues(defaults.r00_background_default)
-		# self.background_roi[0].changed.connect(lambda: self.backgroundROIChanged(0))
-
-		# self.background_roi[1].setValues(defaults.r10_background_default)
-		# self.background_roi[1].changed.connect(lambda: self.backgroundROIChanged(1))
-
-		self.left_layout = QtGui.QVBoxLayout()
-
-		self.left_layout.addWidget(self.loadBar)
-
-		self.left_layout.addWidget(self.roi)
-
-		# self.left_layout.addWidget(self.roi)
-
-		# for w1, w2 in zip(self.signal_roi, self.background_roi):
-		# 	self.left_layout.addWidget(w1)
-		# 	self.left_layout.addWidget(w2)
 
 		self.analysis = AnalysisOptions()
 		
 		self.display_options = DisplayOptions()
 		self.display_options.changed.connect(self.displayOptionsChanged)
+
+		self.plotGroup = PlotGroup()
+		self.plotGroup.crosshairs_placed.connect(self.crosshairsChanged)
+		self.plotGroup.setFixedSize(defaults.dim_plot_group[0], defaults.dim_plot_group[1])
+
+	def populate(self):
+		self.layout = QtGui.QHBoxLayout()
+
+		
+		self.left_layout = QtGui.QVBoxLayout()
+
+		self.left_layout.addWidget(self.loadBar)
+		self.left_layout.addWidget(self.roi)
 
 		self.bottom_box = QtGui.QHBoxLayout()
 		self.bottom_box.addWidget(self.analysis)
@@ -107,18 +72,9 @@ class MainWindow(QtGui.QWidget):
 
 		self.left_layout.addLayout(self.bottom_box)
 
-		# self.center_layout = QtGui.QVBoxLayout()
-		# self.center_layout.addWidget(self.display)
-
 		self.layout.addLayout(self.left_layout)
-
-		self.plotGroup = PlotGroup()
-		self.plotGroup.setFixedSize(defaults.dim_plot_group[0], defaults.dim_plot_group[1])
 		self.layout.addWidget(self.plotGroup)
 
-		# self.layout.addLayout(self.center_layout)
-		# self.layout.addWidget(self.zoom_displays)
-		# self.layout.addWidget(self.profiles)
 		self.setLayout(self.layout)
 
 
@@ -127,49 +83,42 @@ class MainWindow(QtGui.QWidget):
 		self.currentFilePath = path
 
 		if path:
-			# try:
-				self.raw = np.loadtxt(path, delimiter=',')
-				(dy, dx) =  np.shape(self.raw)
-				self.raw = np.reshape(self.raw, (defaults.n_frames, dy/defaults.n_frames, dx))
+			self.fileName = path.split('/')[-1]
+			self.fileNumber = int(self.fileName.split('_')[-1].split('.csv')[0])
 
-				self.data = {}
-				for k,v in defaults.frame_map.items():
-					self.data[k] = self.raw[v]
+			self.raw = np.loadtxt(path, delimiter=',')
+			(dy, dx) =  np.shape(self.raw)
+			self.raw = np.reshape(self.raw, (defaults.n_frames, dy/defaults.n_frames, dx))
 
-				self.calcOD()
+			self.data = {}
+			for k,v in defaults.frame_map.items():
+				self.data[k] = self.raw[v]
 
-				self.plotGroup.setData("m", 0, self.data)
-				for i in range(self.plotGroup.grid_size):
-					self.plotGroup.setData("d", i, self.data)
+			self.calcOD()
 
-				self.roiChanged()
+			self.plotGroup.setData("m", 0, self.data)
+			for i in range(self.plotGroup.grid_size):
+				self.plotGroup.setData("d", i, self.data)
 
-				# self.display.setData(self.data)
-				# # self.display.replot()
-				# for w in self.profiles.profiles:
-				# 	w.setData(self.data)
-				# 	# w.replot()
-				# for w in self.zoom_displays.displays:
-				# 	w.setData(self.data)
-				# 	# w.replot()
-				# self.roiChanged()
-			# except Exception as e:
-			# 	print e
+			self.roiChanged()
 
 	def calcOD(self):
 		# Calculate difference and od frames
 		s1 = (self.data["shadow"] - self.data["dark"]).astype(np.float64)
 		s2 = (self.data["light"] - self.data["dark"]).astype(np.float64)
-		od = -np.log(s1 / s2) + (s2 - s1) / CSatEff
+		od = -np.log(s1 / s2) + (s2 - s1) / defaults.c_sat_eff
 
-		od = np.where(od == np.inf, MAX_OD, od)
-		od = np.where(od == -np.inf, -MAX_OD, od)
-		od = np.where(od == np.nan, MAX_OD, od) # Check if it makes sense
+		od = np.where(od == np.inf, defaults.max_od, od)
+		od = np.where(od == -np.inf, -defaults.max_od, od)
+		od = np.where(od == np.nan, defaults.max_od, od) # Check if it makes sense
 
 		self.data["od"] = od
 
+	def crosshairsChanged(self, x, y):
+		self.display_options.setCrosshairs(x, y)
+
 	def displayOptionsChanged(self):
-		(frame, vmin, vmax) = self.display_options.getState()
+		(frame, vmin, vmax, x, y) = self.display_options.getState()
 
 		self.frame = defaults.frame_list[frame]
 
@@ -178,13 +127,7 @@ class MainWindow(QtGui.QWidget):
 		for i in range(self.plotGroup.grid_size):
 			self.plotGroup.setFrame("d", i, self.frame)
 
-		# self.display.setVlims([vmin, vmax])
-		# self.display.setFrame(defaults.frame_list[frame])
-
-		# for w in self.zoom_displays.displays:
-		# 	w.setVlims([vmin, vmax])
-		# 	w.setFrame(defaults.frame_list[frame])
-
+		self.plotGroup.setCross("m", 0, x, y)
 		self.roiChanged()
 
 	def roiChanged(self):
@@ -220,46 +163,9 @@ class MainWindow(QtGui.QWidget):
 				yprofile *= defaults.od_to_number
 			self.plotGroup.setData("p", i, (xprofile, yprofile))
 			self.plotGroup.setXYRelProfile(i, (rp["xrel"], rp["yrel"]))
+
+		self.analysis.upload_origin(self.paramsToOrigin())
 		self.plotGroup.replot()
-
-		# (main, signal, background) = self.roi.getValues()
-
-		# self.display.setROI(main)
-
-		# for (i, (s, b)) in enumerate(zip(signal, background)):
-		# 	self.zoom_displays.displays[2*i].setROI(s)
-		# 	self.zoom_displays.displays[2*i + 1].setROI(b)
-
-		# 	self.analyzeROI(s, 2*i)
-		# 	self.analyzeROI(b, 2*i+1)
-
-		# 	ps = self.makeRect(2*i, s)
-		# 	pb = self.makeRect(2*i+1, b)
-
-		# 	self.display.addPatch(2*i, *ps)
-		# 	self.display.addPatch(2*i+1, *pb)
-
-		# self.display.replot()
-		# for (rp,d,p) in zip(self.region_params, self.zoom_displays.displays, self.profiles.profiles):
-		# 	rp = rp[self.frame]
-
-		# 	if self.frame == "od":
-		# 		d.setIntegratedNumber(rp["sum"]*defaults.od_to_number)
-
-		# 	xline = ((0, defaults.dim_image[0]), (rp["yc"], rp["yc"]))
-		# 	yline = ((rp["xc"], rp["xc"]), (0, defaults.dim_image[1]))
-		# 	d.setCross(xline, yline)
-		# 	d.setOval((rp["xc"], rp["yc"]), 2*rp["sigx"], 2*rp["sigy"])
-
-		# 	xprofile = rp["xprofile"]
-		# 	yprofile = rp["yprofile"]
-		# 	if self.frame == "od":
-		# 		xprofile *= defaults.od_to_number
-		# 		yprofile *= defaults.od_to_number
-		# 	p.setData((xprofile, yprofile))
-		# 	p.setXYRel(rp["xrel"], rp["yrel"])
-		# 	d.replot()
-		# 	p.replot()
 
 	def getArrayBounds(self, roi):
 		xmin = max(roi[0] - roi[2]/2, 0)
@@ -268,6 +174,25 @@ class MainWindow(QtGui.QWidget):
 		xmax = min(roi[0] + roi[2]/2, defaults.dim_image[0])
 		ymax = min(roi[1] + roi[3]/2, defaults.dim_image[1])
 		return (xmin, xmax, ymin, ymax)
+
+	def paramsToOrigin(self):
+		arr = [
+			self.fileName,
+			self.region_params[0]["od"]["sum"]*defaults.od_to_number, 		# N 0
+			self.region_params[1]["od"]["sum"]*defaults.od_to_number, 		# Background 0
+			self.region_params[0]["od"]["sigx"]*defaults.pixel_size*1e6, 	# sigx0 (um)
+			self.region_params[0]["od"]["sigy"]*defaults.pixel_size*1e6, 	# sigy0 (um)
+			self.region_params[0]["od"]["xc"], 								# xc0 (px)
+			self.region_params[0]["od"]["yc"], 								# yc0 (px)
+			self.region_params[2]["od"]["sum"]*defaults.od_to_number, 		# N 1
+			self.region_params[3]["od"]["sum"]*defaults.od_to_number, 		# Background 1
+			self.region_params[2]["od"]["sigx"]*defaults.pixel_size*1e6, 	# sigx1 (um)
+			self.region_params[2]["od"]["sigy"]*defaults.pixel_size*1e6, 	# sigy1 (um)
+			self.region_params[2]["od"]["xc"], 								# xc1 (px)
+			self.region_params[2]["od"]["yc"], 								# yc1 (px)
+		]
+		return arr
+
 
 	def analyzeROI(self, roi, index):
 		(xmin, xmax, ymin, ymax) = self.getArrayBounds(roi)

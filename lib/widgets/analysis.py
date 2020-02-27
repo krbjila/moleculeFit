@@ -14,6 +14,8 @@ import time
 import numpy as np
 from copy import deepcopy
 
+import win32com.client
+
 import sys
 sys.path.append('../')
 import defaults
@@ -56,6 +58,7 @@ class AnalysisOptions(QtGui.QWidget):
 
 		self.group_layout.setColumnStretch(2,1)
 		self.group.setLayout(self.group_layout)
+		self.group.setStyleSheet(defaults.style_sheet)
 
 		self.layout.addWidget(self.group)
 		self.setLayout(self.layout)
@@ -65,3 +68,27 @@ class AnalysisOptions(QtGui.QWidget):
 		for widget in self.edits:
 			out.append(int(widget.text()))
 		return out
+
+	def upload_origin(self, data):
+		pid = 'Origin.ApplicationSI'
+		origin = win32com.client.Dispatch(pid)
+
+		short_name = "KRbInt1"
+		long_name = "KRb Integrated"
+
+		if origin.FindWorksheet(short_name) is None:
+			origin.CreatePage(2, short_name, short_name)
+		origin.Execute("{}!page.longname$ = {}".format(short_name, long_name))
+
+		print data
+		for (i, x) in enumerate(data):
+			ret = origin.PutWorksheet("[{}]Sheet1".format(short_name), x, -1, i)
+
+        # n = 0
+        # for k in data:
+        #     uploadSuccess = origin.PutWorksheet("[{}]Sheet1".format(short_name), k, -1, n)
+        #     if uploadSuccess:
+        #         n += 1
+        #     else:
+        #         print("Failed to upload to Origin. Is Sheet1 in the proper workbook available?")
+        #         return -1
