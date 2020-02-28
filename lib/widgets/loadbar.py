@@ -76,7 +76,11 @@ class LoadBar(QtGui.QWidget):
 		# Check if the directory exists
 		if os.path.isdir(p):
 			filelist = os.listdir(p)
+			filelist.sort(key=lambda x: int(x.split(defaults.filebase)[-1].split(defaults.file_format)[0]))
+
+			print filelist
 			last = filelist[-1]
+
 			if last.find(defaults.filebase) == 0:
 				return int(last.split(defaults.filebase)[-1].split(defaults.file_format)[0])
 			else:

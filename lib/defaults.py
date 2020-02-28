@@ -43,8 +43,7 @@ frame_map = {"shadow": fmapf(0,0), "light": fmapf(0,1), "dark": fmapf(1,0)}
 frame_list = ["od", "shadow", "light", "dark"]
 default_frame = "od"
 
-# default_path = "K:\\data\\{0.year}\\{0:%m}\\{0.year}{0:%m}{0:%d}\\Andor\\"
-default_path = "K:\\currentmembers\\matsuda\\test_shots_new_sequence\\"
+default_path = "K:\\data\\{0.year}\\{0:%m}\\{0.year}{0:%m}{0:%d}\\Andor\\"
 filebase = "ixon_"
 file_format = ".csv"
 filename = filebase + "{}" + ".csv"
@@ -62,11 +61,11 @@ fit_functions = ["Gaussian"]
 # Imaging parameters #
 ######################
 
-binning = 1
-pixel_size = 2.58e-6 * 2**binning
+binning = 2
+pixel_size = 2.58e-6 * binning
 
 alpha = 2.0
-c_sat_eff = (19000/4.0) * (2**binning)**2
+c_sat_eff = (19000/4.0) * (binning)**2
 
 sigma = 3 * (767e-9)**2 / (2 * np.pi)
 area = pixel_size**2

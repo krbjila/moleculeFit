@@ -290,6 +290,8 @@ class MainWindow(QtGui.QWidget):
 		yaxis = np.arange(ymin, ymax, 1)
 
 		integrated = np.sum(data)
+		xp = np.sum(data, axis=0)/roi[3] # Normalize by region size for atom density
+		yp = np.sum(data, axis=1)/roi[2] # Normalize by region size for atom density
 
 		# Want to compute moments of x,y w/r/t the distribution formed by the image
 		# But negative OD pixels correspond to negative probability
@@ -305,12 +307,11 @@ class MainWindow(QtGui.QWidget):
 		xsig = np.sqrt(np.sum(xprofile*(xaxis - xcom)**2)/shift_int)
 		ysig = np.sqrt(np.sum(yprofile*(yaxis - ycom)**2)/shift_int)
 
-
 		d = {
 			"roi": roi,
 			"sum": integrated,
-			"xprofile": xprofile,
-			"yprofile": yprofile,
+			"xprofile": xp,
+			"yprofile": yp,
 			"xc": xcom,
 			"xrel": roi[0] - xcom,
 			"yc": ycom,
@@ -318,7 +319,6 @@ class MainWindow(QtGui.QWidget):
 			"sigx": xsig,
 			"sigy": ysig
 		}
-
 		self.region_params[index].update({frame: d})
 
 	def makeRect(self, index, roi):
