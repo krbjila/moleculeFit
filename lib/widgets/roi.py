@@ -19,7 +19,8 @@ sys.path.append('../')
 import defaults
 
 class ROISelectors(QtGui.QWidget):
-	changed = pyqtSignal()
+	subregion_changed = pyqtSignal()
+	main_changed = pyqtSignal()
 	currentValues = ()
 
 	def __init__(self):
@@ -65,15 +66,15 @@ class ROISelectors(QtGui.QWidget):
 		return self.currentValues
 
 	def connect(self):
-		self.roi.changed.connect(self.roiChanged)
+		self.roi.changed.connect(self.mainROIChanged)
 		for w in self.signal_roi + self.background_roi:
-			w.changed.connect(self.roiChanged)
+			w.changed.connect(self.subROIChanged)
 		for w in self.background_roi:
 			w.checked.connect(self.checked)
 
 	def checked(self):
 		self.handleDefaults()
-		self.roiChanged()
+		self.subROIChanged()
 
 	def handleDefaults(self):
 		for (w1, w2) in zip(self.signal_roi, self.background_roi):
@@ -100,9 +101,13 @@ class ROISelectors(QtGui.QWidget):
 
 		self.currentValues = (main_roi, signal_roi, background_roi)
 
-	def roiChanged(self):
+	def mainROIChanged(self):
 		self._getValues()
-		self.changed.emit()
+		self.main_changed.emit()
+
+	def subROIChanged(self):
+		self._getValues()
+		self.subregion_changed.emit()
 
 
 class Region(QtGui.QWidget):
@@ -171,8 +176,7 @@ class Region(QtGui.QWidget):
 			self.dyEdit.setDisabled(True)
 
 		for widget in self.edits:
-			widget.editingFinished.connect(self.edited)
-
+			widget.returnPressed.connect(self.edited)
 
 		self.group_layout.addLayout(gl1)
 		self.group_layout.addLayout(gl2)

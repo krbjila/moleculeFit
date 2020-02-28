@@ -45,9 +45,18 @@ default_frame = "od"
 
 # default_path = "K:\\data\\{0.year}\\{0:%m}\\{0.year}{0:%m}{0:%d}\\Andor\\"
 default_path = "K:\\currentmembers\\matsuda\\test_shots_new_sequence\\"
+filebase = "ixon_"
+file_format = ".csv"
+filename = filebase + "{}" + ".csv"
+
+wait_for_load = 1 # seconds
+autoload_loop = 2 # seconds
 
 
 state_names = ["|0,0>", "|1,0>"]
+
+
+fit_functions = ["Gaussian"]
 
 ######################
 # Imaging parameters #
