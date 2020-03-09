@@ -206,8 +206,9 @@ class MainWindow(QtGui.QWidget):
 			self.plotGroup.setROI("d", 2*i, s)
 			self.plotGroup.setROI("d", 2*i+1, b)
 
-			self.analyzeROI(s, 2*i)
-			self.analyzeROI(b, 2*i+1)
+			self.analyzeROI(s, b, 2*i)
+			# self.analyzeROI(s, 2*i)
+			# self.analyzeROI(b, 2*i+1)
 
 			ps = self.makeRect(2*i, s) + (defaults.rect_colors[2*i],)
 			pb = self.makeRect(2*i+1, b) + (defaults.rect_colors[2*i+1],)
@@ -281,45 +282,72 @@ class MainWindow(QtGui.QWidget):
 		return arr
 
 
-	def analyzeROI(self, roi, index):
-		(xmin, xmax, ymin, ymax) = self.getArrayBounds(roi)
+	def analyzeROI(self, s_roi, b_roi, index):
 		frame = self.frame
 
-		data = self.data[frame][ymin:ymax, xmin:xmax]
-		xaxis = np.arange(xmin, xmax, 1)
-		yaxis = np.arange(ymin, ymax, 1)
+		d = {}
+		for (sb, roi) in zip(['s', 'b'], [s_roi, b_roi]):
+			x = {}
+			(xmin, xmax, ymin, ymax) = self.getArrayBounds(roi)
+			x['xmin'] = xmin
+			x['xmax'] = xmax
+			x['ymin'] = ymin
+			x['ymax'] = ymax
 
-		integrated = np.sum(data)
-		xp = np.sum(data, axis=0)/roi[3] # Normalize by region size for atom density
-		yp = np.sum(data, axis=1)/roi[2] # Normalize by region size for atom density
+			x['data'] = self.data[frame][ymin:ymax, xmin:xmax]
+			x['xaxis'] = np.arange(xmin, xmax, 1)
+			x['yaxis'] = np.arange(ymin, ymax, 1)
+			d[sb] = x
 
-		# Want to compute moments of x,y w/r/t the distribution formed by the image
-		# But negative OD pixels correspond to negative probability
-		# Shift everything to get rid of negative values
-		shift = data - np.min(data)
-		shift_int = np.sum(shift)
-		xprofile = np.sum(shift, axis=0)
-		yprofile = np.sum(shift, axis=1)
+		for (sb, roi) in zip(['s', 'b'], [s_roi, b_roi]):
+			if sb == 's':
+				shift = np.array(d['s']['data']) - np.array(d['b']['data'])
+			else:
+				shift = np.array(d[sb]['data'])
 
-		xcom = np.sum(xprofile*xaxis)/shift_int
-		ycom = np.sum(yprofile*yaxis)/shift_int
+			integrated = np.sum(d[sb]['data'])
+			xp = np.sum(d[sb]['data'], axis=0)/roi[3]
+			yp = np.sum(d[sb]['data'], axis=1)/roi[2]
 
-		xsig = np.sqrt(np.sum(xprofile*(xaxis - xcom)**2)/shift_int)
-		ysig = np.sqrt(np.sum(yprofile*(yaxis - ycom)**2)/shift_int)
+			shift_int = np.sum(shift)
+			shift_xp = np.sum(shift, axis=0)
+			shift_yp = np.sum(shift, axis=1)
 
-		d = {
-			"roi": roi,
-			"sum": integrated,
-			"xprofile": xp,
-			"yprofile": yp,
-			"xc": xcom,
-			"xrel": roi[0] - xcom,
-			"yc": ycom,
-			"yrel": roi[1] - ycom,
-			"sigx": xsig,
-			"sigy": ysig
-		}
-		self.region_params[index].update({frame: d})
+			xcom = np.sum(shift_xp*d[sb]['xaxis'])/shift_int
+			ycom = np.sum(shift_yp*d[sb]['yaxis'])/shift_int
+
+			# Clip COM to ROI
+			xcom = max(min(xcom, d[sb]['xmax']), d[sb]['xmin'])
+			ycom = max(min(ycom, d[sb]['ymax']), d[sb]['ymin'])
+
+			xvar = np.sum(shift_xp*(d[sb]['xaxis'] - xcom)**2)/shift_int
+			yvar = np.sum(shift_yp*(d[sb]['yaxis'] - ycom)**2)/shift_int
+
+			if xvar > 0:
+				xsig = np.sqrt(xvar)
+			else:
+				xsig = 0
+			if yvar > 0:
+				ysig = np.sqrt(yvar)
+			else:
+				ysig = 0
+
+			dd = {
+				"roi": roi,
+				"sum": integrated,
+				"xprofile": xp,
+				"yprofile": yp,
+				"xc": xcom,
+				"xrel": roi[0] - xcom,
+				"yc": ycom,
+				"yrel": roi[1] - ycom,
+				"sigx": xsig,
+				"sigy": ysig
+			}
+			if sb == 's':
+				self.region_params[index].update({frame: dd})
+			else:
+				self.region_params[index + 1].update({frame: dd})
 
 	def makeRect(self, index, roi):
 		x = max(roi[0] - roi[2]/2, 0)
