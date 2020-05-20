@@ -130,6 +130,14 @@ class PlotGroup(QtGui.QWidget):
 		d = self.lookup(flag, index)
 		d["data"] = data
 
+	def setFitData(self, flag, index, fit_data):
+		d = self.lookup(flag, index)
+		d["fit_data"] = fit_data
+
+	def setFitAxes(self, flag, index, fit_axes):
+		d = self.lookup(flag, index)
+		d["fit_axes"] = fit_axes
+
 	def setFrame(self, flag, index, frame):
 		d = self.lookup(flag, index)
 		d["frame"] = frame
@@ -244,226 +252,14 @@ class PlotGroup(QtGui.QWidget):
 		for (xy,d,c) in zip(xyRel, data, ['C0', 'C1']):
 			start = int(xy-len(d)/2.0)
 			t = np.arange(start, start+len(d), 1)
-			ax.plot(t, d)
+			ax.plot(t, d, 'o-')
+
+		if properties.has_key("fit_data"):
+			fit_data = properties["fit_data"]
+			fit_axes = properties["fit_axes"]
+
+			for (fa,fd) in zip(fit_axes, fit_data):
+				ax.plot(fa, fd, 'k-')
 
 		if title and color:
 			ax.set_title(title, color=c)
-
-	
-
-
-# class Plot(QtGui.QWidget):
-# 	def __init__(self, use_toolbar=True):
-# 		super(Plot, self).__init__()
-# 		self.use_toolbar = use_toolbar
-# 		self.populate()
-
-# 	# Populate GUI
-# 	def populate(self):
-# 		self.layout = QtGui.QVBoxLayout()
-
-# 		self.figure = Figure()
-# 		self.canvas = FigureCanvas(self.figure)
-
-# 		if self.use_toolbar:
-# 			self.toolbar = NavigationToolbar(self.canvas, self)
-# 			self.layout.addWidget(self.toolbar)
-
-# 		self.layout.addWidget(self.canvas)
-# 		self.setLayout(self.layout)
-
-
-# def make_format_coord(numrows, numcols, data):
-# 	def format_coord(x, y):
-# 	    col = int(x + 0.5)
-# 	    row = int(y + 0.5)
-# 	    if col >= 0 and col < numcols and row >= 0 and row < numrows:
-# 	        z = data[row, col]
-# 	        return '({:},{:}), z={:.2f}'.format(int(x),int(y),z)
-# 	    else:
-# 	        return 'x=%1.4f, y=%1.4f' % (x, y)
-# 	return format_coord
-
-
-# class Display(Plot):
-# 	data = {}
-# 	patch_parameters = [()]*4
-
-# 	xline = ((), ())
-# 	yline = ((), ())
-# 	oval = {'xy': (0,0), 'w': 0, 'h': 0}
-
-# 	def __init__(self, dx, dy, use_toolbar=True, use_colorbar=True, title="", title_color='k'):
-# 		super(Display, self).__init__(use_toolbar)
-# 		self.setFixedSize(dx, dy)
-# 		self.canvas.setContentsMargins(0,0,0,0)
-
-# 		self.use_colorbar = use_colorbar
-
-# 		self.title = title
-# 		self.integrated_number = ""
-# 		self.title_color = title_color
-
-# 		# Colormaps
-# 		self.colors = KRbCustomColors()
-# 		self.cmaps = [self.colors.whiteJet, self.colors.whiteMagma, self.colors.whitePlasma, plt.cm.jet]
-
-# 		self.ax = self.figure.add_subplot(111)
-# 		self.frame = defaults.default_frame
-
-# 		self.xlims = [0,200]
-# 		self.ylims = [0,200]
-
-# 		self.vlims = [0, 1]
-
-# 	# Plot the data
-# 	def replot(self):
-# 		self.figure.clear()
-# 		self.ax = self.figure.add_subplot(111)
-
-# 		im = self.ax.imshow(
-# 			self.data[self.frame],
-# 			origin='upper',
-# 			interpolation='none',
-# 			vmin = self.vlims[0],
-# 			vmax = self.vlims[1],
-# 			cmap = self.cmaps[0])
-
-# 		self.ax.set_xlim((self.xlims[0], self.xlims[1]))
-# 		self.ax.set_ylim((self.ylims[1], self.ylims[0]))
-
-# 		if self.use_colorbar:
-# 			# https://stackoverflow.com/a/18195921
-# 			divider = make_axes_locatable(self.ax)
-# 			cax = divider.append_axes("right", size="5%", pad=0.05)
-# 			# Add a horizontal colorbar
-# 			self.figure.colorbar(im, cax=cax, orientation='vertical')
-
-# 		# Don't understand patches... probably shouldn't mess with this
-# 		for (i,pp) in enumerate(self.patch_parameters):
-# 			if pp:
-# 				p = Rectangle(*pp, linewidth=defaults.rect_linewidth, edgecolor=defaults.rect_colors[i], facecolor='none')
-# 				self.ax.add_patch(p)
-
-# 		self.ax.add_line(Line2D(self.xline[0], self.xline[1], color='C0'))
-# 		self.ax.add_line(Line2D(self.yline[0], self.yline[1], color='C1'))
-
-# 		self.ax.add_patch(
-# 			Ellipse(
-# 				self.oval['xy'],
-# 				self.oval['w'],
-# 				self.oval['h'],
-# 				edgecolor=self.title_color,
-# 				facecolor='none')
-# 			)
-
-# 		# Need to do the following to get the z data to show up in the toolbar
-# 		numrows, numcols = np.shape(self.data[self.frame])
-# 		self.ax.format_coord = make_format_coord(numrows, numcols, self.data[self.frame])
-
-# 		if self.title:
-# 			self.ax.set_title(self.title + "N = {:.1f}".format(self.integrated_number), color=self.title_color)
-
-# 		# Update the plot
-# 		self.canvas.draw()
-
-# 	def setROI(self, roi):
-# 		self.xlims = [max(roi[0] - roi[2]/2, 0), min(roi[0] + roi[2]/2, defaults.dim_image[0])]
-# 		self.ylims = [min(roi[1] + roi[3]/2, defaults.dim_image[1]), max(roi[1] - roi[3]/2, 0)]
-
-# 	def setVlims(self, vlims):
-# 		self.vlims = vlims
-
-# 	def setData(self, data):
-# 		self.data = data
-
-# 	def setFrame(self, frame):
-# 		self.frame = frame
-
-# 	def setCross(self, xline, yline):
-# 		self.xline = xline
-# 		self.yline = yline
-
-# 	def setOval(self, xy, width, height):
-# 		self.oval['xy'] = xy
-# 		self.oval['w'] = width
-# 		self.oval['h'] = height
-
-# 	def setIntegratedNumber(self, integrated_number):
-# 		self.integrated_number = integrated_number
-
-# 	def addPatch(self, index, xy, w, h):
-# 		self.patch_parameters[index] = (xy, w, h)
-
-
-# class Profile(Plot):
-# 	data = {}
-
-# 	def __init__(self):
-# 		super(Profile, self).__init__(False)
-# 		self.setFixedSize(defaults.dim_profile[0], defaults.dim_profile[1])
-# 		self.xyRel = [0,0]
-
-# 	def setData(self, data):
-# 		self.data = data
-
-# 	def setXYRel(self, xrel, yrel):
-# 		self.xyRel = [xrel, yrel]
-
-# 	# Plot the data
-# 	def replot(self):
-# 		# Clear plot
-# 		self.figure.clear()
-
-# 		# Plot the data
-# 		ax = self.figure.add_subplot(111)
-# 		for (xy,d) in zip(self.xyRel, self.data):
-# 			start = int(xy-len(d)/2.0)
-# 			t = np.arange(start, start+len(d), 1)
-# 			ax.plot(t, d)
-# 		self.canvas.draw()
-
-# class Profiles(QtGui.QWidget):
-# 	n_rows = 4
-# 	n_cols = 1
-
-# 	def __init__(self):
-# 		super(Profiles, self).__init__()
-# 		self.setFixedSize(defaults.dim_profile_col[0], defaults.dim_profile_col[1])
-# 		self.populate()
-
-# 	def populate(self):
-# 		self.layout = QtGui.QGridLayout()
-# 		self.profiles = []
-# 		for j in range(self.n_rows):
-# 			for i in range(self.n_cols):
-# 				profile = Profile()
-# 				self.profiles.append(profile)
-# 				self.layout.addWidget(profile, j, i)
-# 		self.setLayout(self.layout)
-
-
-# class Zooms(QtGui.QWidget):
-# 	n_rows = 4
-# 	n_cols = 1
-
-# 	def __init__(self):
-# 		super(Zooms, self).__init__()
-# 		self.setFixedSize(defaults.dim_zoom_col[0], defaults.dim_zoom_col[1])
-# 		self.populate()
-
-# 	def populate(self):
-# 		self.layout = QtGui.QGridLayout()
-# 		self.displays = []
-# 		for j in range(self.n_rows):
-# 			for i in range(self.n_cols):
-# 				if j % 2 == 0:
-# 					s = "Signal "
-# 				else:
-# 					s = "Background "
-# 				s += defaults.state_names[j/2] + ": "
-
-# 				display = Display(defaults.dim_zoom[0], defaults.dim_zoom[1], False, False, s, defaults.rect_colors[j*self.n_cols+i])
-# 				self.displays.append(display)
-# 				self.layout.addWidget(display, j, i)
-# 		self.setLayout(self.layout)

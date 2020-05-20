@@ -8,6 +8,7 @@ from matplotlib.patches import Rectangle
 import time
 
 import numpy as np
+from scipy.optimize import least_squares
 from copy import deepcopy
 
 import sys
@@ -21,6 +22,7 @@ from roi import ROISelectors
 from analysis import AnalysisOptions
 from display_options import DisplayOptions
 import defaults
+import fitfunctions
 
 import os
 
@@ -40,6 +42,7 @@ class MainWindow(QtGui.QWidget):
 
 		self.raw = []
 		self.region_params = [{}, {}, {}, {}]
+		self.fits = [{}, {}]
 		self.fit_function = ""
 		self.auto_fit = False
 		self.auto_origin = False
@@ -65,10 +68,6 @@ class MainWindow(QtGui.QWidget):
 		self.analysis.changed.connect(self.analysisOptionsChanged)
 		self.analysis.fit.connect(self.fit)
 		self.analysis.upload.connect(self.upload)
-
-		# REMOVE LATER:
-		self.analysis.fitButton.setDisabled(True)
-		self.analysis.autofitCheck.setDisabled(True)
 		
 		self.display_options = DisplayOptions()
 		self.display_options.changed.connect(self.displayOptionsChanged)
@@ -144,21 +143,61 @@ class MainWindow(QtGui.QWidget):
 		else:
 			self.autoload_deferred = self.reactor.callLater(defaults.autoload_loop, self._autoload, filenumber, path)
 
-
-
 	def fit(self):
-		pass
+		self._fit()
+		self.plotGroup.replot()
 
-		# for rp in self.region_params:
-		# 	if rp:
-		# 		(xmin, xmax, ymin, ymax) = self.getArrayBounds(rp["roi"])
-		# 		data = self.data["od"][ymin:ymax, xmin:xmax]
-		# 		xaxis = np.arange(xmin, xmax, 1)
-		# 		yaxis = np.arange(ymin, ymax, 1)
+	def _fit(self):
+		(main, signal, background) = self.roi.getValues()
+		(fitfunction, auto_fit, auto_origin) = self.analysis.getValues()
+
+		for (i, roi) in enumerate(signal):
+			(xmin, xmax, ymin, ymax) = self.getArrayBounds(roi)
+			data = self.data["od"][ymin:ymax, xmin:xmax]
+			xaxis = np.arange(xmin, xmax, 1)
+			yaxis = np.arange(ymin, ymax, 1)
+
+			rp = self.region_params[2*i]["od"]
+
+			if fitfunction == "Gaussian":
+				guess = [0, 0.5, rp["xc"], rp["yc"], rp["sigx"], rp["sigy"]]
+				upper_bounds = [defaults.max_od, defaults.max_od, xmax, ymax, xmax-xmin, ymax-ymin]
+				lower_bounds = [-defaults.max_od, 0, xmin, ymin, 0, 0]
+
+				res = least_squares(fitfunctions.gauss_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
+				if not res.success:
+					print "Warning: fit did not converge."
+
+				self.fits[i] = {
+					"f": "Gaussian",
+					"offset": res.x[0],
+					"peak": res.x[1],
+					"xc": res.x[2],
+					"yc": res.x[3],
+					"sigx": res.x[4],
+					"sigy": res.x[5]
+				}
+
+				(width, height) = (xmax - xmin, ymax - ymin)
+				fitted = fitfunctions.gauss_fit(res.x, [xaxis, yaxis], 0)
+				fitted = np.reshape(fitted, (height, width))
+
+				fitted_x = np.sum(fitted, axis=0) * defaults.od_to_number / height
+				fitted_y = np.sum(fitted, axis=1) * defaults.od_to_number / width
+
+			self.plotGroup.setFitData("p", 2*i, (fitted_x, fitted_y))
+			self.plotGroup.setFitAxes("p", 2*i, (xaxis - rp["xc"], yaxis - rp["yc"]))
+
+		if auto_origin:
+			self.upload()
 
 	def upload(self):
 		if self.region_params[0]:
-			self.analysis.upload_origin(self.paramsToOrigin())
+			if self.fits[0]:
+				f = self.fits[0]['f']
+				self.analysis.upload_origin(self.fitParamsToOrigin(f), f)
+			else:
+				self.analysis.upload_origin(self.integrationParamsToOrigin())
 
 	def calcOD(self):
 		# Calculate difference and od frames
@@ -207,8 +246,6 @@ class MainWindow(QtGui.QWidget):
 			self.plotGroup.setROI("d", 2*i+1, b)
 
 			self.analyzeROI(s, b, 2*i)
-			# self.analyzeROI(s, 2*i)
-			# self.analyzeROI(b, 2*i+1)
 
 			ps = self.makeRect(2*i, s) + (defaults.rect_colors[2*i],)
 			pb = self.makeRect(2*i+1, b) + (defaults.rect_colors[2*i+1],)
@@ -240,10 +277,11 @@ class MainWindow(QtGui.QWidget):
 			self.plotGroup.setXYRelProfile(i, (rp["xrel"], rp["yrel"]))
 
 		if self.auto_fit:
-			self.fit()
-
-		if self.auto_origin:
-			self.upload()
+			self._fit()
+		else:
+			self.fits = [{}, {}]
+			if self.auto_origin:
+				self.upload()
 
 	def subROIChanged(self):
 		self._subROIChanged()
@@ -257,7 +295,7 @@ class MainWindow(QtGui.QWidget):
 		ymax = min(roi[1] + roi[3]/2, defaults.dim_image[1])
 		return (xmin, xmax, ymin, ymax)
 
-	def paramsToOrigin(self):
+	def integrationParamsToOrigin(self):
 		(main, signal, background) = self.roi.getValues()
 
 		arr = [
@@ -280,6 +318,31 @@ class MainWindow(QtGui.QWidget):
 			self.region_params[2]["od"]["yc"], 								# yc1 (px)
 		]
 		return arr
+
+	def fitParamsToOrigin(self, fitfunction):
+		(main, signal, background) = self.roi.getValues()
+
+		if fitfunction == "Gaussian":		
+			arr = [
+				self.fileName,
+				signal[0][2],										# Fit region 0 width
+				signal[0][3],										# Fit region 0 height
+				self.fits[0]["peak"],								# Peak OD 0
+				self.fits[0]["sigx"]*defaults.pixel_size*1e6, 		# sigx0 (um)
+				self.fits[0]["sigy"]*defaults.pixel_size*1e6, 		# sigx0 (um)
+				self.fits[0]["xc"], 								# xc0 (px)
+				self.fits[0]["yc"], 								# yc0 (px)
+				self.fits[0]["offset"],								# Offset 0
+				# signal[1][2],										# Fit region 1 width
+				# signal[1][3],										# Fit region 1 height
+				# self.fits[1]["peak"],								# Peak OD 1
+				# self.fits[1]["sigx"]*defaults.pixel_size*1e6, 		# sigx1 (um)
+				# self.fits[1]["sigy"]*defaults.pixel_size*1e6, 		# sigx1 (um)
+				# self.fits[1]["xc"], 								# xc1 (px)
+				# self.fits[1]["yc"], 								# yc1 (px)
+				# self.fits[1]["offset"],								# Offset 1
+			]
+			return arr
 
 
 	def analyzeROI(self, s_roi, b_roi, index):

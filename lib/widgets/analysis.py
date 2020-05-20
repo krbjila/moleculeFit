@@ -44,11 +44,11 @@ class AnalysisOptions(QtGui.QWidget):
 
 		self.group_layout.addWidget(self.analysisCombo, 0, 0, 1, 2)
 
-		self.fitButton = QtGui.QPushButton("Fit?")
+		self.fitButton = QtGui.QPushButton("Fit")
 		self.fitButton.clicked.connect(self.fit_pressed)
 		self.group_layout.addWidget(self.fitButton, 1, 0, 1, 2)
 
-		self.originButton = QtGui.QPushButton("Upload to Origin?")
+		self.originButton = QtGui.QPushButton("Upload to Origin")
 		self.originButton.clicked.connect(self.upload_pressed)
 		self.group_layout.addWidget(self.originButton, 2, 0, 1, 2)
 
@@ -90,16 +90,22 @@ class AnalysisOptions(QtGui.QWidget):
 	def option_changed(self):
 		self.changed.emit()
 
-
-	def upload_origin(self, data):
+	def upload_origin(self, data, fitfunction=None):
 		pid = 'Origin.ApplicationSI'
 		origin = win32com.client.Dispatch(pid)
 
-		short_name = "KRbInt1"
-		long_name = "KRb Integrated"
+		if fitfunction == "Gaussian":
+			short_name = "KRbFKGauss1"
+			long_name = "KRb FK Gaussian"
 
-		if origin.FindWorksheet(short_name) is None:
-			origin.CreatePage(2, short_name, "KRbInt")
+			if origin.FindWorksheet(short_name) is None:
+				origin.CreatePage(2, short_name, "KRbFKGauss")
+		else:
+			short_name = "KRbInt1"
+			long_name = "KRb Integrated"
+
+			if origin.FindWorksheet(short_name) is None:
+				origin.CreatePage(2, short_name, "KRbInt")
 		origin.Execute("{}!page.longname$ = {}".format(short_name, long_name))
 
 		for (i, x) in enumerate(data):

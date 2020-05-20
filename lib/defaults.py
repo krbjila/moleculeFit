@@ -20,11 +20,11 @@ dim_display_opt = (dim_settings_col[0]/2, 200)
 dim_profile = (dim_profile_col[0], 200)
 dim_zoom = (dim_zoom_col[0], 200)
 
-roi_default = [160, 210, 200, 200]
-r00_signal_default = [160, 180, 30, 20]
-r10_signal_default = [160, 220, 30, 20]
-r00_background_default = [160, 200, 30, 20]
-r10_background_default = [160, 240, 30, 20]
+roi_default = [145, 190, 150, 150]
+r00_signal_default = [145, 190, 30, 20]
+r10_signal_default = [145, 210, 30, 20]
+r00_background_default = [145, 230, 30, 20]
+r10_background_default = [145, 250, 30, 20]
 
 dim_image = [256, 512]
 
@@ -44,7 +44,8 @@ frame_list = ["od", "shadow", "light", "dark"]
 default_frame = "od"
 
 default_path = "K:\\data\\{0.year}\\{0:%m}\\{0.year}{0:%m}{0:%d}\\Andor\\"
-filebase = "ixon_"
+
+filebase = "moleculefk_"
 file_format = ".csv"
 filename = filebase + "{}" + ".csv"
 
@@ -56,6 +57,8 @@ state_names = ["|0,0>", "|1,0>"]
 
 
 fit_functions = ["Gaussian"]
+
+fit_points = 10. # Points to plot per pixel
 
 ######################
 # Imaging parameters #
