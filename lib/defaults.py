@@ -45,7 +45,7 @@ default_frame = "od"
 
 default_path = "K:\\data\\{0.year}\\{0:%m}\\{0.year}{0:%m}{0:%d}\\Andor\\"
 
-filebase = "moleculefk_"
+filebase = "ixon_"
 file_format = ".csv"
 filename = filebase + "{}" + ".csv"
 

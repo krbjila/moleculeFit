@@ -186,7 +186,7 @@ class MainWindow(QtGui.QWidget):
 				fitted_y = np.sum(fitted, axis=1) * defaults.od_to_number / width
 
 			self.plotGroup.setFitData("p", 2*i, (fitted_x, fitted_y))
-			self.plotGroup.setFitAxes("p", 2*i, (xaxis - rp["xc"], yaxis - rp["yc"]))
+			self.plotGroup.setFitAxes("p", 2*i, (xaxis - int(rp["xc"]), yaxis - int(rp["yc"])))
 
 		if auto_origin:
 			self.upload()
