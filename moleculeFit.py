@@ -160,7 +160,7 @@ class MainWindow(QtGui.QWidget):
 			rp = self.region_params[2*i]["od"]
 
 			if fitfunction == "Gaussian":
-				guess = [0, 0.5, rp["xc"], rp["yc"], rp["sigx"], rp["sigy"]]
+				guess = [0, 0.5, rp["xc"], rp["yc"], 0.2*(xmax - xmin), 0.2*(ymax - ymin)]
 				upper_bounds = [defaults.max_od, defaults.max_od, xmax, ymax, xmax-xmin, ymax-ymin]
 				lower_bounds = [-defaults.max_od, 0, xmin, ymin, 0, 0]
 

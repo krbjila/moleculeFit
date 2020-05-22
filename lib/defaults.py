@@ -43,9 +43,9 @@ frame_map = {"shadow": fmapf(0,0), "light": fmapf(0,1), "dark": fmapf(1,0)}
 frame_list = ["od", "shadow", "light", "dark"]
 default_frame = "od"
 
-default_path = "K:\\data\\{0.year}\\{0:%m}\\{0.year}{0:%m}{0:%d}\\Andor\\"
+default_path = "K:\\data\\{0.year}\\{0:%m}\\{0.year}{0:%m}{0:%d}\\KRbFK\\"
 
-filebase = "ixon_"
+filebase = "krbfk_"
 file_format = ".csv"
 filename = filebase + "{}" + ".csv"
 

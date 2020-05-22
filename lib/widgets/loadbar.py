@@ -78,9 +78,10 @@ class LoadBar(QtGui.QWidget):
 			filelist = os.listdir(p)
 			filelist.sort(key=lambda x: int(x.split(defaults.filebase)[-1].split(defaults.file_format)[0]))
 
-			print filelist
+			if not filelist:
+				return 0
 			last = filelist[-1]
-
+			
 			if last.find(defaults.filebase) == 0:
 				return int(last.split(defaults.filebase)[-1].split(defaults.file_format)[0])
 			else:
