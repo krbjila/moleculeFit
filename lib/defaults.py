@@ -56,7 +56,7 @@ autoload_loop = 2 # seconds
 state_names = ["|0,0>", "|1,0>"]
 
 
-fit_functions = ["Gaussian"]
+fit_functions = ["Gaussian", "Fermi 2D", "Fermi 3D"]
 
 fit_points = 10. # Points to plot per pixel
 

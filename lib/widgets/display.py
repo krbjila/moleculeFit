@@ -259,7 +259,8 @@ class PlotGroup(QtGui.QWidget):
 			fit_axes = properties["fit_axes"]
 
 			for (fa,fd) in zip(fit_axes, fit_data):
-				ax.plot(fa, fd, 'k-')
+				if len(fd):
+					ax.plot(fa, fd, 'k-')
 
 		if title and color:
 			ax.set_title(title, color=c)

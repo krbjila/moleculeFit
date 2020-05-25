@@ -100,6 +100,19 @@ class AnalysisOptions(QtGui.QWidget):
 
 			if origin.FindWorksheet(short_name) is None:
 				origin.CreatePage(2, short_name, "KRbFKGauss")
+
+		elif fitfunction == "Fermi 2D":
+			short_name = "KRbFermi2D1"
+			long_name = "KRb FK Fermi-Dirac 2D"
+
+			if origin.FindWorksheet(short_name) is None:
+				origin.CreatePage(2, short_name, "KRbFermi2D")
+		elif fitfunction == "Fermi 3D":
+			short_name = "KRbFermi3D1"
+			long_name = "KRb FK Fermi-Dirac 3D"
+
+			if origin.FindWorksheet(short_name) is None:
+				origin.CreatePage(2, short_name, "KRbFermi3D")
 		else:
 			short_name = "KRbInt1"
 			long_name = "KRb Integrated"

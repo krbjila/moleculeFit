@@ -152,39 +152,17 @@ class MainWindow(QtGui.QWidget):
 		(fitfunction, auto_fit, auto_origin) = self.analysis.getValues()
 
 		for (i, roi) in enumerate(signal):
-			(xmin, xmax, ymin, ymax) = self.getArrayBounds(roi)
+			bounds = self.getArrayBounds(roi)
+			(xmin, xmax, ymin, ymax) = bounds
+
 			data = self.data["od"][ymin:ymax, xmin:xmax]
 			xaxis = np.arange(xmin, xmax, 1)
 			yaxis = np.arange(ymin, ymax, 1)
 
 			rp = self.region_params[2*i]["od"]
 
-			if fitfunction == "Gaussian":
-				guess = [0, 0.5, rp["xc"], rp["yc"], 0.2*(xmax - xmin), 0.2*(ymax - ymin)]
-				upper_bounds = [defaults.max_od, defaults.max_od, xmax, ymax, xmax-xmin, ymax-ymin]
-				lower_bounds = [-defaults.max_od, 0, xmin, ymin, 0, 0]
-
-				res = least_squares(fitfunctions.gauss_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
-				if not res.success:
-					print "Warning: fit did not converge."
-
-				self.fits[i] = {
-					"f": "Gaussian",
-					"offset": res.x[0],
-					"peak": res.x[1],
-					"xc": res.x[2],
-					"yc": res.x[3],
-					"sigx": res.x[4],
-					"sigy": res.x[5]
-				}
-
-				(width, height) = (xmax - xmin, ymax - ymin)
-				fitted = fitfunctions.gauss_fit(res.x, [xaxis, yaxis], 0)
-				fitted = np.reshape(fitted, (height, width))
-
-				fitted_x = np.sum(fitted, axis=0) * defaults.od_to_number / height
-				fitted_y = np.sum(fitted, axis=1) * defaults.od_to_number / width
-
+			(fits, fitted_x, fitted_y) = fitfunctions.fitter(fitfunction, data, bounds, xaxis, yaxis, rp)
+			self.fits[i] = fits
 			self.plotGroup.setFitData("p", 2*i, (fitted_x, fitted_y))
 			self.plotGroup.setFitAxes("p", 2*i, (xaxis - int(rp["xc"]), yaxis - int(rp["yc"])))
 
@@ -340,6 +318,58 @@ class MainWindow(QtGui.QWidget):
 				# self.fits[1]["sigy"]*defaults.pixel_size*1e6, 		# sigx1 (um)
 				# self.fits[1]["xc"], 								# xc1 (px)
 				# self.fits[1]["yc"], 								# yc1 (px)
+				# self.fits[1]["offset"],								# Offset 1
+			]
+			return arr
+		elif fitfunction == "Fermi 2D":		
+			arr = [
+				self.fileName,
+				signal[0][2],										# Fit region 0 width
+				signal[0][3],										# Fit region 0 height
+				self.fits[0]["peakGauss"],							# Peak OD 0
+				self.fits[0]["sigxGauss"]*defaults.pixel_size*1e6,	# Gaussian sigx0 (um)
+				self.fits[0]["sigyGauss"]*defaults.pixel_size*1e6, 	# Gaussian sigy0 (um)
+				self.fits[0]["sigx"]*defaults.pixel_size*1e6, 		# FD sigx0 (um)
+				self.fits[0]["xc"], 								# xc0 (px)
+				self.fits[0]["ycGauss"],							# yc0 (px)
+				self.fits[0]["TTF"],								# T/TF 0
+				self.fits[0]["offset"],								# Offset 0
+				# signal[1][2],										# Fit region 1 width
+				# signal[1][3],										# Fit region 1 height
+				# self.fits[1]["peakGauss"],							# Peak OD 1
+				# self.fits[1]["sigxGauss"]*defaults.pixel_size*1e6,	# Gaussian sigx1 (um)
+				# self.fits[1]["sigyGauss"]*defaults.pixel_size*1e6,	# Gaussian sigy1 (um)
+				# self.fits[1]["sigx"]*defaults.pixel_size*1e6, 		# FD sigx1 (um)
+				# self.fits[1]["xc"], 								# xc1 (px)
+				# self.fits[1]["ycGauss"], 								# yc1 (px)
+				# self.fits[1]["TTF"],								# T/TF 1
+				# self.fits[1]["offset"],								# Offset 1
+			]
+			return arr
+		elif fitfunction == "Fermi 3D":		
+			arr = [
+				self.fileName,
+				signal[0][2],										# Fit region 0 width
+				signal[0][3],										# Fit region 0 height
+				self.fits[0]["peakGauss"],							# Peak OD 0
+				self.fits[0]["sigxGauss"]*defaults.pixel_size*1e6,	# Gaussian sigx0 (um)
+				self.fits[0]["sigyGauss"]*defaults.pixel_size*1e6, 	# Gaussian sigy0 (um)
+				self.fits[0]["sigx"]*defaults.pixel_size*1e6, 		# FD sigx0 (um)
+				self.fits[0]["sigy"]*defaults.pixel_size*1e6, 		# FD sigx0 (um)
+				self.fits[0]["xc"], 								# xc0 (px)
+				self.fits[0]["yc"], 								# yc0 (px)
+				self.fits[0]["TTF"],								# T/TF 0
+				self.fits[0]["offset"],								# Offset 0
+				# signal[1][2],										# Fit region 1 width
+				# signal[1][3],										# Fit region 1 height
+				# self.fits[1]["peakGauss"],							# Peak OD 1
+				# self.fits[1]["sigxGauss"]*defaults.pixel_size*1e6,	# Gaussian sigx1 (um)
+				# self.fits[1]["sigyGauss"]*defaults.pixel_size*1e6,	# Gaussian sigy1 (um)
+				# self.fits[1]["sigx"]*defaults.pixel_size*1e6, 		# FD sigx1 (um)
+				# self.fits[1]["sigy"]*defaults.pixel_size*1e6, 		# FD sigx1 (um)
+				# self.fits[1]["xc"], 								# xc1 (px)
+				# self.fits[1]["yc"], 								# yc1 (px)
+				# self.fits[1]["TTF"],								# T/TF 1
 				# self.fits[1]["offset"],								# Offset 1
 			]
 			return arr
