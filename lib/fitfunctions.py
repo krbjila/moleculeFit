@@ -35,7 +35,7 @@ def TTF2d(q):
 def TTF3d(q):
 	return np.power(-6.0*npli(3, -np.exp(q)), -1.0/3.0)
 
-def fitter(fname, data, bounds, xaxis, yaxis, rp):
+def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 	(xmin, xmax, ymin, ymax) = bounds
 	(width, height) = (xmax - xmin, ymax - ymin)
 
@@ -61,8 +61,8 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp):
 		fitted = gauss_fit(res.x, [xaxis, yaxis], 0)
 		fitted = np.reshape(fitted, (height, width))
 
-		fitted_x = np.sum(fitted, axis=0) * defaults.od_to_number / height
-		fitted_y = np.sum(fitted, axis=1) * defaults.od_to_number / width
+		fitted_x = np.sum(fitted, axis=0) * defaults.od_to_number * binning**2.0 / height
+		fitted_y = np.sum(fitted, axis=1) * defaults.od_to_number * binning**2.0  / width
 
 		return (fits, fitted_x, fitted_y)
 
@@ -89,7 +89,7 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp):
 		}
 
 		fitted = fermi2d(res.x, xaxis, np.array([0]))
-		fitted_x = fitted * defaults.od_to_number
+		fitted_x = fitted * defaults.od_to_number * binning**2.0 
 
 		fits.update(
 			{
@@ -124,8 +124,8 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp):
 		fitted = fermi3d(res.x, [xaxis, yaxis], np.array([0]))
 		fitted = np.reshape(fitted, (height, width))
 
-		fitted_x = np.sum(fitted, axis=0) * defaults.od_to_number / height
-		fitted_y = np.sum(fitted, axis=1) * defaults.od_to_number / width
+		fitted_x = np.sum(fitted, axis=0) * defaults.od_to_number * binning**2.0 / height
+		fitted_y = np.sum(fitted, axis=1) * defaults.od_to_number * binning**2.0 / width
 
 		fits.update(
 			{

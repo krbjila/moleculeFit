@@ -46,6 +46,7 @@ class MainWindow(QtGui.QWidget):
 		self.fit_function = ""
 		self.auto_fit = False
 		self.auto_origin = False
+		self.binning = 2
 
 		self.autoload_deferred = None
 
@@ -107,6 +108,11 @@ class MainWindow(QtGui.QWidget):
 			(dy, dx) =  np.shape(self.raw)
 			self.raw = np.reshape(self.raw, (defaults.n_frames, dy/defaults.n_frames, dx))
 
+			binning = defaults.dim_image[0] / dx
+			if binning != self.binning:
+				self.roi.handleBinning(self.binning/float(binning))
+			self.binning = binning
+
 			self.data = {}
 			for k,v in defaults.frame_map.items():
 				self.data[k] = self.raw[v]
@@ -161,7 +167,7 @@ class MainWindow(QtGui.QWidget):
 
 			rp = self.region_params[2*i]["od"]
 
-			(fits, fitted_x, fitted_y) = fitfunctions.fitter(fitfunction, data, bounds, xaxis, yaxis, rp)
+			(fits, fitted_x, fitted_y) = fitfunctions.fitter(fitfunction, data, bounds, xaxis, yaxis, rp, self.binning)
 			self.fits[i] = fits
 			self.plotGroup.setFitData("p", 2*i, (fitted_x, fitted_y))
 			self.plotGroup.setFitAxes("p", 2*i, (xaxis - int(rp["xc"]), yaxis - int(rp["yc"])))
@@ -181,7 +187,7 @@ class MainWindow(QtGui.QWidget):
 		# Calculate difference and od frames
 		s1 = (self.data["shadow"] - self.data["dark"]).astype(np.float64)
 		s2 = (self.data["light"] - self.data["dark"]).astype(np.float64)
-		od = -np.log(s1 / s2) + (s2 - s1) / defaults.c_sat_eff
+		od = -np.log(s1 / s2) + (s2 - s1) / (defaults.c_sat_eff*self.binning**2.0)
 
 		od = np.where(od == np.inf, defaults.max_od, od)
 		od = np.where(od == -np.inf, -defaults.max_od, od)
@@ -241,7 +247,7 @@ class MainWindow(QtGui.QWidget):
 			rp = rp[self.frame]
 
 			if self.frame == "od":
-				self.plotGroup.setNumber("d", i, rp["sum"]*defaults.od_to_number)
+				self.plotGroup.setNumber("d", i, rp["sum"]*defaults.od_to_number*self.binning**2.0)
 
 			self.plotGroup.setCross("d", i, rp["xc"], rp["yc"])
 			self.plotGroup.setOvalDisplay(i, (rp["xc"], rp["yc"]), 2*rp["sigx"], 2*rp["sigy"], defaults.rect_colors[i])
@@ -249,8 +255,8 @@ class MainWindow(QtGui.QWidget):
 			xprofile = rp["xprofile"]
 			yprofile = rp["yprofile"]
 			if self.frame == "od":
-				xprofile *= defaults.od_to_number
-				yprofile *= defaults.od_to_number
+				xprofile *= defaults.od_to_number*self.binning**2.0
+				yprofile *= defaults.od_to_number*self.binning**2.0
 			self.plotGroup.setData("p", i, (xprofile, yprofile))
 			self.plotGroup.setXYRelProfile(i, (rp["xrel"], rp["yrel"]))
 
@@ -269,8 +275,8 @@ class MainWindow(QtGui.QWidget):
 		xmin = max(roi[0] - roi[2]/2, 0)
 		ymin = max(roi[1] - roi[3]/2, 0)
 
-		xmax = min(roi[0] + roi[2]/2, defaults.dim_image[0])
-		ymax = min(roi[1] + roi[3]/2, defaults.dim_image[1])
+		xmax = min(roi[0] + roi[2]/2, defaults.dim_image[0] / self.binning)
+		ymax = min(roi[1] + roi[3]/2, defaults.dim_image[1] / self.binning)
 		return (xmin, xmax, ymin, ymax)
 
 	def integrationParamsToOrigin(self):
@@ -278,22 +284,22 @@ class MainWindow(QtGui.QWidget):
 
 		arr = [
 			self.fileName,
-			self.region_params[0]["od"]["sum"]*defaults.od_to_number, 		# N 0
-			self.region_params[1]["od"]["sum"]*defaults.od_to_number, 		# Background 0
-			signal[0][2],													# Integration region 0 width
-			signal[0][3],													# Integration region 0 height
-			self.region_params[0]["od"]["sigx"]*defaults.pixel_size*1e6, 	# sigx0 (um)
-			self.region_params[0]["od"]["sigy"]*defaults.pixel_size*1e6, 	# sigy0 (um)
-			self.region_params[0]["od"]["xc"], 								# xc0 (px)
-			self.region_params[0]["od"]["yc"], 								# yc0 (px)
-			self.region_params[2]["od"]["sum"]*defaults.od_to_number, 		# N 1
-			self.region_params[3]["od"]["sum"]*defaults.od_to_number, 		# Background 1
-			signal[1][2],													# Integration region 1 width
-			signal[1][3],													# Integration region 1 height
-			self.region_params[2]["od"]["sigx"]*defaults.pixel_size*1e6, 	# sigx1 (um)
-			self.region_params[2]["od"]["sigy"]*defaults.pixel_size*1e6, 	# sigy1 (um)
-			self.region_params[2]["od"]["xc"], 								# xc1 (px)
-			self.region_params[2]["od"]["yc"], 								# yc1 (px)
+			self.region_params[0]["od"]["sum"]*defaults.od_to_number*self.binning**2.0, 	# N 0
+			self.region_params[1]["od"]["sum"]*defaults.od_to_number*self.binning**2.0, 	# Background 0
+			signal[0][2],																	# Integration region 0 width
+			signal[0][3],																	# Integration region 0 height
+			self.region_params[0]["od"]["sigx"]*defaults.pixel_size*1e6*self.binning,		# sigx0 (um)
+			self.region_params[0]["od"]["sigy"]*defaults.pixel_size*1e6*self.binning,		# sigy0 (um)
+			self.region_params[0]["od"]["xc"], 												# xc0 (px)
+			self.region_params[0]["od"]["yc"], 												# yc0 (px)
+			self.region_params[2]["od"]["sum"]*defaults.od_to_number*self.binning**2.0, 	# N 1
+			self.region_params[3]["od"]["sum"]*defaults.od_to_number*self.binning**2.0, 	# Background 1
+			signal[1][2],																	# Integration region 1 width
+			signal[1][3],																	# Integration region 1 height
+			self.region_params[2]["od"]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# sigx1 (um)
+			self.region_params[2]["od"]["sigy"]*defaults.pixel_size*1e6*self.binning, 		# sigy1 (um)
+			self.region_params[2]["od"]["xc"], 												# xc1 (px)
+			self.region_params[2]["od"]["yc"], 												# yc1 (px)
 		]
 		return arr
 
@@ -303,19 +309,19 @@ class MainWindow(QtGui.QWidget):
 		if fitfunction == "Gaussian":		
 			arr = [
 				self.fileName,
-				signal[0][2],										# Fit region 0 width
-				signal[0][3],										# Fit region 0 height
-				self.fits[0]["peak"],								# Peak OD 0
-				self.fits[0]["sigx"]*defaults.pixel_size*1e6, 		# sigx0 (um)
-				self.fits[0]["sigy"]*defaults.pixel_size*1e6, 		# sigx0 (um)
-				self.fits[0]["xc"], 								# xc0 (px)
-				self.fits[0]["yc"], 								# yc0 (px)
-				self.fits[0]["offset"],								# Offset 0
-				# signal[1][2],										# Fit region 1 width
-				# signal[1][3],										# Fit region 1 height
-				# self.fits[1]["peak"],								# Peak OD 1
-				# self.fits[1]["sigx"]*defaults.pixel_size*1e6, 		# sigx1 (um)
-				# self.fits[1]["sigy"]*defaults.pixel_size*1e6, 		# sigx1 (um)
+				signal[0][2],													# Fit region 0 width
+				signal[0][3],													# Fit region 0 height
+				self.fits[0]["peak"],											# Peak OD 0
+				self.fits[0]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# sigx0 (um)
+				self.fits[0]["sigy"]*defaults.pixel_size*1e6*self.binning, 		# sigx0 (um)
+				self.fits[0]["xc"], 											# xc0 (px)
+				self.fits[0]["yc"], 											# yc0 (px)
+				self.fits[0]["offset"],											# Offset 0
+				# signal[1][2],													# Fit region 1 width
+				# signal[1][3],													# Fit region 1 height
+				# self.fits[1]["peak"],											# Peak OD 1
+				# self.fits[1]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# sigx1 (um)
+				# self.fits[1]["sigy"]*defaults.pixel_size*1e6*self.binning, 		# sigx1 (um)
 				# self.fits[1]["xc"], 								# xc1 (px)
 				# self.fits[1]["yc"], 								# yc1 (px)
 				# self.fits[1]["offset"],								# Offset 1
@@ -324,22 +330,22 @@ class MainWindow(QtGui.QWidget):
 		elif fitfunction == "Fermi 2D":		
 			arr = [
 				self.fileName,
-				signal[0][2],										# Fit region 0 width
-				signal[0][3],										# Fit region 0 height
-				self.fits[0]["peakGauss"],							# Peak OD 0
-				self.fits[0]["sigxGauss"]*defaults.pixel_size*1e6,	# Gaussian sigx0 (um)
-				self.fits[0]["sigyGauss"]*defaults.pixel_size*1e6, 	# Gaussian sigy0 (um)
-				self.fits[0]["sigx"]*defaults.pixel_size*1e6, 		# FD sigx0 (um)
-				self.fits[0]["xc"], 								# xc0 (px)
-				self.fits[0]["ycGauss"],							# yc0 (px)
-				self.fits[0]["TTF"],								# T/TF 0
-				self.fits[0]["offset"],								# Offset 0
-				# signal[1][2],										# Fit region 1 width
-				# signal[1][3],										# Fit region 1 height
-				# self.fits[1]["peakGauss"],							# Peak OD 1
-				# self.fits[1]["sigxGauss"]*defaults.pixel_size*1e6,	# Gaussian sigx1 (um)
-				# self.fits[1]["sigyGauss"]*defaults.pixel_size*1e6,	# Gaussian sigy1 (um)
-				# self.fits[1]["sigx"]*defaults.pixel_size*1e6, 		# FD sigx1 (um)
+				signal[0][2],													# Fit region 0 width
+				signal[0][3],													# Fit region 0 height
+				self.fits[0]["peakGauss"],										# Peak OD 0
+				self.fits[0]["sigxGauss"]*defaults.pixel_size*1e6*self.binning,	# Gaussian sigx0 (um)
+				self.fits[0]["sigyGauss"]*defaults.pixel_size*1e6*self.binning, # Gaussian sigy0 (um)
+				self.fits[0]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# FD sigx0 (um)
+				self.fits[0]["xc"], 											# xc0 (px)
+				self.fits[0]["ycGauss"],										# yc0 (px)
+				self.fits[0]["TTF"],											# T/TF 0
+				self.fits[0]["offset"],											# Offset 0
+				# signal[1][2],													# Fit region 1 width
+				# signal[1][3],													# Fit region 1 height
+				# self.fits[1]["peakGauss"],									# Peak OD 1
+				# self.fits[1]["sigxGauss"]*defaults.pixel_size*1e6*self.binning,	# Gaussian sigx1 (um)
+				# self.fits[1]["sigyGauss"]*defaults.pixel_size*1e6*self.binning,	# Gaussian sigy1 (um)
+				# self.fits[1]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# FD sigx1 (um)
 				# self.fits[1]["xc"], 								# xc1 (px)
 				# self.fits[1]["ycGauss"], 								# yc1 (px)
 				# self.fits[1]["TTF"],								# T/TF 1
@@ -349,24 +355,24 @@ class MainWindow(QtGui.QWidget):
 		elif fitfunction == "Fermi 3D":		
 			arr = [
 				self.fileName,
-				signal[0][2],										# Fit region 0 width
-				signal[0][3],										# Fit region 0 height
-				self.fits[0]["peakGauss"],							# Peak OD 0
-				self.fits[0]["sigxGauss"]*defaults.pixel_size*1e6,	# Gaussian sigx0 (um)
-				self.fits[0]["sigyGauss"]*defaults.pixel_size*1e6, 	# Gaussian sigy0 (um)
-				self.fits[0]["sigx"]*defaults.pixel_size*1e6, 		# FD sigx0 (um)
-				self.fits[0]["sigy"]*defaults.pixel_size*1e6, 		# FD sigx0 (um)
-				self.fits[0]["xc"], 								# xc0 (px)
-				self.fits[0]["yc"], 								# yc0 (px)
-				self.fits[0]["TTF"],								# T/TF 0
-				self.fits[0]["offset"],								# Offset 0
+				signal[0][2],													# Fit region 0 width
+				signal[0][3],													# Fit region 0 height
+				self.fits[0]["peakGauss"],										# Peak OD 0
+				self.fits[0]["sigxGauss"]*defaults.pixel_size*1e6*self.binning,	# Gaussian sigx0 (um)
+				self.fits[0]["sigyGauss"]*defaults.pixel_size*1e6*self.binning, # Gaussian sigy0 (um)
+				self.fits[0]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# FD sigx0 (um)
+				self.fits[0]["sigy"]*defaults.pixel_size*1e6*self.binning, 		# FD sigx0 (um)
+				self.fits[0]["xc"], 											# xc0 (px)
+				self.fits[0]["yc"], 											# yc0 (px)
+				self.fits[0]["TTF"],											# T/TF 0
+				self.fits[0]["offset"],											# Offset 0
 				# signal[1][2],										# Fit region 1 width
 				# signal[1][3],										# Fit region 1 height
 				# self.fits[1]["peakGauss"],							# Peak OD 1
-				# self.fits[1]["sigxGauss"]*defaults.pixel_size*1e6,	# Gaussian sigx1 (um)
-				# self.fits[1]["sigyGauss"]*defaults.pixel_size*1e6,	# Gaussian sigy1 (um)
-				# self.fits[1]["sigx"]*defaults.pixel_size*1e6, 		# FD sigx1 (um)
-				# self.fits[1]["sigy"]*defaults.pixel_size*1e6, 		# FD sigx1 (um)
+				# self.fits[1]["sigxGauss"]*defaults.pixel_size*1e6*self.binning,	# Gaussian sigx1 (um)
+				# self.fits[1]["sigyGauss"]*defaults.pixel_size*1e6*self.binning,	# Gaussian sigy1 (um)
+				# self.fits[1]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# FD sigx1 (um)
+				# self.fits[1]["sigy"]*defaults.pixel_size*1e6*self.binning, 		# FD sigx1 (um)
 				# self.fits[1]["xc"], 								# xc1 (px)
 				# self.fits[1]["yc"], 								# yc1 (px)
 				# self.fits[1]["TTF"],								# T/TF 1

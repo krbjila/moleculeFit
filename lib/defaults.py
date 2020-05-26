@@ -26,7 +26,7 @@ r10_signal_default = [145, 210, 30, 20]
 r00_background_default = [145, 230, 30, 20]
 r10_background_default = [145, 250, 30, 20]
 
-dim_image = [256, 512]
+dim_image = [512, 1024]
 
 rect_linewidth = 2
 oval_linewidth = 2
@@ -64,11 +64,10 @@ fit_points = 10. # Points to plot per pixel
 # Imaging parameters #
 ######################
 
-binning = 2
-pixel_size = 2.58e-6 * binning
+pixel_size = 2.58e-6
 
 alpha = 2.0
-c_sat_eff = (19000/4.0) * (binning)**2
+c_sat_eff = (19000/4.0)
 
 sigma = 3 * (767e-9)**2 / (2 * np.pi)
 area = pixel_size**2

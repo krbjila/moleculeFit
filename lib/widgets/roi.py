@@ -61,6 +61,14 @@ class ROISelectors(QtGui.QWidget):
 
 		self.setLayout(self.layout)
 
+	def handleBinning(self, scale):
+		(main, sig, bg) = self.getValues()
+		self.roi.setValues([int(m*scale) for m in main])
+
+		for (s,b,sroi,broi) in zip(self.signal_roi, self.background_roi, sig, bg):
+			s.setValues([int(r*scale) for r in sroi])
+			b.setValues([int(r*scale) for r in broi])
+
 	def getValues(self):
 		self._getValues()
 		return self.currentValues
