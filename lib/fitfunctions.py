@@ -67,7 +67,7 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 		return (fits, fitted_x, fitted_y)
 
 	elif fname == "Fermi 2D":
-		(fit_gauss, f_x, f_y) = fitter("Gaussian", data, bounds, xaxis, yaxis, rp)
+		(fit_gauss, f_x, f_y) = fitter("Gaussian", data, bounds, xaxis, yaxis, rp, binning)
 		guess = [fit_gauss["offset"], fit_gauss["peak"], fit_gauss["xc"], fit_gauss["sigx"], 0] # q=0 is T/TF=0.78
 		upper_bounds = [fit_gauss["offset"]+0.1, defaults.max_od, xmax, width, 50] # q=50 is T/TF=0.02
 		lower_bounds = [fit_gauss["offset"]-0.1, 0, xmin, 0, -5] # q=-5 is T/TF=8
@@ -101,7 +101,7 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 		return (fits, fitted_x, [])
 
 	elif fname == "Fermi 3D":
-		(fit_gauss, f_x, f_y) = fitter("Gaussian", data, bounds, xaxis, yaxis, rp)
+		(fit_gauss, f_x, f_y) = fitter("Gaussian", data, bounds, xaxis, yaxis, rp, binning)
 		guess = [fit_gauss["offset"], fit_gauss["peak"], fit_gauss["xc"], fit_gauss["yc"], fit_gauss["sigx"], fit_gauss["sigy"], 0] # q=0 is T/TF=0.57
 		upper_bounds = [fit_gauss["offset"]+0.1, fit_gauss["peak"]+0.5, xmax, ymax, width, height, 50] # q=50 is T/TF=0.02
 		lower_bounds = [fit_gauss["offset"]-0.1, fit_gauss["peak"]-0.5, xmin, ymin, 0, 0, -6] # q=-6 is T/TF=4
