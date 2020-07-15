@@ -155,7 +155,7 @@ class MainWindow(QtGui.QWidget):
 
 	def _fit(self):
 		(main, signal, background) = self.roi.getValues()
-		(fitfunction, auto_fit, auto_origin) = self.analysis.getValues()
+		(fitfunction, auto_fit, auto_origin, upload_both) = self.analysis.getValues()
 
 		for (i, roi) in enumerate(signal):
 			bounds = self.getArrayBounds(roi)
@@ -173,13 +173,13 @@ class MainWindow(QtGui.QWidget):
 			self.plotGroup.setFitAxes("p", 2*i, (xaxis - int(rp["xc"]), yaxis - int(rp["yc"])))
 
 		if auto_origin:
-			self.upload()
+			self.upload(upload_both)
 
-	def upload(self):
+	def upload(self, upload_both=False):
 		if self.region_params[0]:
 			if self.fits[0]:
 				f = self.fits[0]['f']
-				self.analysis.upload_origin(self.fitParamsToOrigin(f), f)
+				self.analysis.upload_origin(self.fitParamsToOrigin(f, upload_both), f, upload_both)
 			else:
 				self.analysis.upload_origin(self.integrationParamsToOrigin())
 
@@ -199,10 +199,11 @@ class MainWindow(QtGui.QWidget):
 		self.display_options.setCrosshairs(x, y)
 
 	def analysisOptionsChanged(self):
-		(fit_function, autofit, origin) = self.analysis.getValues()
+		(fit_function, autofit, origin, upload_both) = self.analysis.getValues()
 		self.fit_function = fit_function
 		self.auto_fit = autofit
 		self.auto_origin = origin
+		self.upload_both = upload_both
 
 	def displayOptionsChanged(self):
 		(frame, vmin, vmax, x, y) = self.display_options.getState()
@@ -303,10 +304,10 @@ class MainWindow(QtGui.QWidget):
 		]
 		return arr
 
-	def fitParamsToOrigin(self, fitfunction):
+	def fitParamsToOrigin(self, fitfunction, upload_both=False):
 		(main, signal, background) = self.roi.getValues()
 
-		if fitfunction == "Gaussian":		
+		if fitfunction == "Gaussian" and not upload_both:		
 			arr = [
 				self.fileName,
 				signal[0][2],													# Fit region 0 width
@@ -327,6 +328,24 @@ class MainWindow(QtGui.QWidget):
 				# self.fits[1]["offset"],								# Offset 1
 			]
 			return arr
+		elif fitfunction == "Gaussian" and upload_both:		
+			arr = [
+				self.fileName,
+				self.fits[0]["peak"],											# Peak OD 0
+				self.fits[0]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# sigx0 (um)
+				self.fits[0]["sigy"]*defaults.pixel_size*1e6*self.binning, 		# sigx0 (um)
+				self.fits[0]["xc"], 											# xc0 (px)
+				self.fits[0]["yc"], 											# yc0 (px)
+				self.fits[0]["offset"],											# Offset 0
+				self.fits[1]["peak"],											# Peak OD 1
+				self.fits[1]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# sigx1 (um)
+				self.fits[1]["sigy"]*defaults.pixel_size*1e6*self.binning, 		# sigx1 (um)
+				self.fits[1]["xc"], 											# xc1 (px)
+				self.fits[1]["yc"], 											# yc1 (px)
+				self.fits[1]["offset"],											# Offset 1
+			]
+			return arr
+
 		elif fitfunction == "Fermi 2D":		
 			arr = [
 				self.fileName,

@@ -66,6 +66,13 @@ class AnalysisOptions(QtGui.QWidget):
 		self.originCheck.stateChanged.connect(self.option_changed)
 		self.group_layout.addWidget(self.originCheck, 4, 1)
 
+		self.uploadBothLabel = QtGui.QLabel("Report both fits (G. only)")
+		self.group_layout.addWidget(self.uploadBothLabel, 5, 0)
+
+		self.uploadBothCheck = QtGui.QCheckBox()
+		self.uploadBothCheck.stateChanged.connect(self.option_changed)
+		self.group_layout.addWidget(self.uploadBothCheck, 5, 1)
+
 		self.group_layout.setColumnStretch(2,1)
 		self.group.setLayout(self.group_layout)
 		self.group.setStyleSheet(defaults.style_sheet)
@@ -83,23 +90,31 @@ class AnalysisOptions(QtGui.QWidget):
 		out = (
 			defaults.fit_functions[self.analysisCombo.currentIndex()],
 			self.autofitCheck.isChecked(),
-			self.originCheck.isChecked()
+			self.originCheck.isChecked(),
+			self.uploadBothCheck.isChecked()
 		)
 		return out
 
 	def option_changed(self):
 		self.changed.emit()
 
-	def upload_origin(self, data, fitfunction=None):
+	def upload_origin(self, data, fitfunction=None, uploadBoth=False):
 		pid = 'Origin.ApplicationSI'
 		origin = win32com.client.Dispatch(pid)
 
 		if fitfunction == "Gaussian":
-			short_name = "KRbFKGauss1"
-			long_name = "KRb FK Gaussian"
+			if not uploadBoth:
+				short_name = "KRbFKGauss1"
+				long_name = "KRb FK Gaussian"
 
-			if origin.FindWorksheet(short_name) is None:
-				origin.CreatePage(2, short_name, "KRbFKGauss")
+				if origin.FindWorksheet(short_name) is None:
+					origin.CreatePage(2, short_name, "KRbFKGauss")
+			else:
+				short_name = "KRbBothG1"
+				long_name = "KRb Both Gauss"
+
+				if origin.FindWorksheet(short_name) is None:
+					origin.CreatePage(2, short_name, "KRbBothG")
 
 		elif fitfunction == "Fermi 2D":
 			short_name = "KRbFermi2D1"
