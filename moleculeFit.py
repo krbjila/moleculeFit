@@ -1,7 +1,5 @@
-from PyQt4 import QtGui, QtCore, Qt
-from PyQt4.QtCore import pyqtSignal
-from twisted.internet.defer import inlineCallbacks
-import twisted.internet.error
+from PyQt5 import QtGui, QtCore, Qt
+from PyQt5.QtCore import pyqtSignal
 
 from matplotlib.patches import Rectangle
 
@@ -14,7 +12,6 @@ from copy import deepcopy
 import sys
 sys.path.append("./lib/")
 sys.path.append("./lib/widgets/")
-sys.path.append("./lib/qt4reactor/")
 
 from display import PlotGroup
 from loadbar import LoadBar
@@ -26,16 +23,9 @@ import fitfunctions
 
 import os
 
-import qtreactor.pyqt4reactor
-qtreactor.pyqt4reactor.install()
-from twisted.internet import reactor
-
-
 class MainWindow(QtGui.QWidget):
 	def __init__(self, reactor):
 		super(MainWindow, self).__init__()
-
-		self.reactor = reactor
 
 		self.setWindowTitle("Molecule fitting")
 		self.setFixedSize(defaults.dim_gui[0], defaults.dim_gui[1])
@@ -476,8 +466,7 @@ class MainWindow(QtGui.QWidget):
 if __name__ == '__main__':
     a = QtGui.QApplication([])
     a.setQuitOnLastWindowClosed(True)
-    widget = MainWindow(reactor)
+    widget = MainWindow()
 
     widget.show()
-    reactor.runReturn()
     sys.exit(a.exec_())

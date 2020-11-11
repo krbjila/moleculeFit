@@ -1,5 +1,5 @@
-from PyQt4 import QtGui, QtCore, Qt
-from PyQt4.QtCore import pyqtSignal
+from PyQt5 import QtGui, QtCore, Qt
+from PyQt5.QtCore import pyqtSignal
 from twisted.internet.defer import inlineCallbacks
 import twisted.internet.error
 
