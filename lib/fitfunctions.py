@@ -6,6 +6,7 @@ from scipy.optimize import least_squares
 import defaults
 
 from matplotlib import pyplot as plt
+import numpy.random as random
 
 def gauss_fit(p,r,y):
 	(xx,yy) = np.meshgrid(r[0], r[1])
@@ -76,10 +77,26 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 		upper_bounds = [defaults.max_od, defaults.max_od, xmax, ymax, width, height, 0.000375, 0.000375]
 		lower_bounds = [-defaults.max_od, 0, xmin, ymin, 0, 0, -0.000375, -0.000375]
 
-		res = least_squares(gauss_grad_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
-		if not res.success:
-			print "Warning: fit did not converge."
+		nguesses = 10
+		guesses = []
+		for i in range(nguesses):
+			guesses.append([0, 0.5, rp["xc"], np.clip(random.normal(rp["yc"], 0.3*height), ymin, ymax), np.clip(random.normal(0.3, 0.1), 0, 1)*width, np.clip(random.normal(0.3, 0.1), 0, 1)*height, 0.0, 0.0])
 
+		best_fit = least_squares(gauss_grad_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
+		if best_fit.success:
+			best_guess = best_fit.cost
+		else:
+			best_guess = np.inf
+
+		for g in guesses:
+			res = least_squares(gauss_grad_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
+			if not res.success:
+				print("Warning: fit did not converge.")
+			elif res.cost < best_guess:
+				best_guess = res.cost
+				best_fit = res
+
+		res = best_fit
 		fits = {
 			"f": fname,
 			"offset": res.x[0],
