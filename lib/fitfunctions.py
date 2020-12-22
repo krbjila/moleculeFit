@@ -72,7 +72,9 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 			"xc": res.x[2],
 			"yc": res.x[3],
 			"sigx": res.x[4],
-			"sigy": res.x[5]
+			"sigy": res.x[5],
+			"gradx": 0.0,
+			"grady": 0.0
 		}
 
 		fitted = gauss_fit(res.x, [xaxis, yaxis], 0)
@@ -136,7 +138,7 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 			"sigx": res.x[4],
 			"sigy": res.x[5],
 			"gradx": res.x[6],
-			"grady": res.x[7],
+			"grady": res.x[7]
 		}
 
 		fitted = gauss_grad_fit(res.x, [xaxis, yaxis], 0)
