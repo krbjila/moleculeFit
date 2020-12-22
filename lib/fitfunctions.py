@@ -8,6 +8,18 @@ import defaults
 from matplotlib import pyplot as plt
 import numpy.random as random
 
+from findpeaks import findpeaks
+import cv2 as cv
+
+def subtract_gradient(od):
+    (dy, dx) = np.shape(od)
+    X2D,Y2D = np.meshgrid(np.arange(dx),np.arange(dy))
+    A = np.matrix(np.column_stack((X2D.ravel(),Y2D.ravel(),np.ones(dx*dy))))
+    B = od.flatten()
+    C = np.dot((A.T * A).I * A.T, B).flatten()
+    bg=np.reshape(C*A.T, (dy,dx))
+    return np.asarray(od - bg)
+
 def gauss_fit(p,r,y):
 	(xx,yy) = np.meshgrid(r[0], r[1])
 	[offset, peak, xc, yc, sigx, sigy] = p
@@ -73,23 +85,30 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 		return (fits, fitted_x, fitted_y)
 
 	if fname == "Gaussian w/ Gradient":
+		od_no_bg = subtract_gradient(data)
+		blur = cv.GaussianBlur(od_no_bg,(11,11),0)
+		fp=findpeaks(method='topology', denoise=None, interpolate=None, scale=False)
+		fp.fit(blur)
+		pks=fp.results['groups0'][:3]
+
 		guess = [0, 0.5, rp["xc"], rp["yc"], 0.2*width, 0.2*height, 0.0, 0.0]
 		upper_bounds = [defaults.max_od, defaults.max_od, xmax, ymax, width, height, 0.000375, 0.000375]
 		lower_bounds = [-defaults.max_od, 0, xmin, ymin, 0, 0, -0.000375, -0.000375]
 
-		nguesses = 10
 		guesses = []
-		for i in range(nguesses):
-			guesses.append([0, 0.5, rp["xc"], np.clip(random.normal(rp["yc"], 0.3*height), ymin, ymax), np.clip(random.normal(0.3, 0.1), 0, 1)*width, np.clip(random.normal(0.3, 0.1), 0, 1)*height, 0.0, 0.0])
+		for pk in pks:
+			(xc, yc) = pk[0]
+			peak = od_no_bg[px, py]
+			offset = np.mean(od_no_bg)
+			(sigx, sigy) = 15,15
+			guess = [offset, peak, xc, yc, sigx, sigy, 0.0, 0.0]
+			guesses.append(guess)
 
-		best_fit = least_squares(gauss_grad_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
-		if best_fit.success:
-			best_guess = best_fit.cost
-		else:
-			best_guess = np.inf
+		best_fit = None
+		best_guess = np.inf		
 
 		for g in guesses:
-			res = least_squares(gauss_grad_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
+			res = least_squares(gauss_grad_fit, guess, args=([xaxis, yaxis], od_no_bg), bounds=(lower_bounds, upper_bounds))
 			if not res.success:
 				print("Warning: fit did not converge.")
 			elif res.cost < best_guess:
