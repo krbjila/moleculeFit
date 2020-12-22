@@ -12,6 +12,11 @@ def gauss_fit(p,r,y):
 	[offset, peak, xc, yc, sigx, sigy] = p
 	return np.ravel(offset + peak*np.exp(-0.5*(xx-xc)**2.0/sigx**2.0 - 0.5*(yy-yc)**2.0/sigy**2.0) - y)
 
+def gauss_grad_fit(p,r,y):
+	(xx,yy) = np.meshgrid(r[0], r[1])
+	[offset, peak, xc, yc, sigx, sigy, gradx, grady] = p
+	return np.ravel(offset + gradx*(xx-xc) + grady*(yy-yc) + peak*np.exp(-0.5*(xx-xc)**2.0/sigx**2.0 - 0.5*(yy-yc)**2.0/sigy**2.0) - y)
+
 npli = np.frompyfunc(mpmath.fp.polylog, 2, 1)
 
 # See https://arxiv.org/pdf/0801.2500.pdf
@@ -59,6 +64,35 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 		}
 
 		fitted = gauss_fit(res.x, [xaxis, yaxis], 0)
+		fitted = np.reshape(fitted, (height, width))
+
+		fitted_x = np.sum(fitted, axis=0) * defaults.od_to_number * binning**2.0 / height
+		fitted_y = np.sum(fitted, axis=1) * defaults.od_to_number * binning**2.0  / width
+
+		return (fits, fitted_x, fitted_y)
+
+	if fname == "Gaussian w/ Gradient":
+		guess = [0, 0.5, rp["xc"], rp["yc"], 0.2*width, 0.2*height, 0.0, 0.0]
+		upper_bounds = [defaults.max_od, defaults.max_od, xmax, ymax, width, height, 0.000375, 0.000375]
+		lower_bounds = [-defaults.max_od, 0, xmin, ymin, 0, 0, -0.000375, -0.000375]
+
+		res = least_squares(gauss_grad_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
+		if not res.success:
+			print "Warning: fit did not converge."
+
+		fits = {
+			"f": fname,
+			"offset": res.x[0],
+			"peak": res.x[1],
+			"xc": res.x[2],
+			"yc": res.x[3],
+			"sigx": res.x[4],
+			"sigy": res.x[5],
+			"gradx": res.x[6],
+			"grady": res.x[7],
+		}
+
+		fitted = gauss_grad_fit(res.x, [xaxis, yaxis], 0)
 		fitted = np.reshape(fitted, (height, width))
 
 		fitted_x = np.sum(fitted, axis=0) * defaults.od_to_number * binning**2.0 / height

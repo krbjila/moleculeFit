@@ -306,8 +306,7 @@ class MainWindow(QtGui.QWidget):
 
 	def fitParamsToOrigin(self, fitfunction, upload_both=False):
 		(main, signal, background) = self.roi.getValues()
-
-		if fitfunction == "Gaussian" and not upload_both:		
+		if "Gaussian" in fitfunction  and not upload_both:		
 			arr = [
 				self.fileName,
 				signal[0][2],													# Fit region 0 width
@@ -328,7 +327,7 @@ class MainWindow(QtGui.QWidget):
 				# self.fits[1]["offset"],								# Offset 1
 			]
 			return arr
-		elif fitfunction == "Gaussian" and upload_both:		
+		elif "Gaussian" in fitfunction and upload_both:		
 			arr = [
 				self.fileName,
 				self.fits[0]["peak"],											# Peak OD 0

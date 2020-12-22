@@ -102,7 +102,7 @@ class AnalysisOptions(QtGui.QWidget):
 		pid = 'Origin.ApplicationSI'
 		origin = win32com.client.Dispatch(pid)
 
-		if fitfunction == "Gaussian":
+		if "Gaussian" in fitfunction:
 			if not uploadBoth:
 				short_name = "KRbFKGauss1"
 				long_name = "KRb FK Gaussian"
