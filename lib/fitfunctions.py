@@ -61,7 +61,9 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 			"xc": res.x[2],
 			"yc": res.x[3],
 			"sigx": res.x[4],
-			"sigy": res.x[5]
+			"sigy": res.x[5],
+			"gradx": 0.0,
+			"grady": 0.0
 		}
 
 		fitted = gauss_fit(res.x, [xaxis, yaxis], 0)
@@ -77,7 +79,7 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 		upper_bounds = [defaults.max_od, defaults.max_od, xmax, ymax, width, height, 0.000375, 0.000375]
 		lower_bounds = [-defaults.max_od, 0, xmin, ymin, 0, 0, -0.000375, -0.000375]
 
-		nguesses = 10
+		nguesses = 2
 		guesses = []
 		for i in range(nguesses):
 			guesses.append([0, 0.5, rp["xc"], np.clip(random.normal(rp["yc"], 0.3*height), ymin, ymax), np.clip(random.normal(0.3, 0.1), 0, 1)*width, np.clip(random.normal(0.3, 0.1), 0, 1)*height, 0.0, 0.0])
@@ -106,7 +108,7 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 			"sigx": res.x[4],
 			"sigy": res.x[5],
 			"gradx": res.x[6],
-			"grady": res.x[7],
+			"grady": res.x[7]
 		}
 
 		fitted = gauss_grad_fit(res.x, [xaxis, yaxis], 0)
