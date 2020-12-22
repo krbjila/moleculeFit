@@ -8,8 +8,8 @@ import defaults
 from matplotlib import pyplot as plt
 import numpy.random as random
 
-from findpeaks import findpeaks
-import cv2 as cv
+from skimage.feature import peak_local_max
+from scipy import ndimage as ndimage
 
 def subtract_gradient(od):
     (dy, dx) = np.shape(od)
@@ -64,8 +64,7 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 
 		res = least_squares(gauss_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
 		if not res.success:
-			print "Warning: fit did not converge."
-
+			print("Warning: fit did not converge.")
 		fits = {
 			"f": fname,
 			"offset": res.x[0],
@@ -86,34 +85,46 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 
 	if fname == "Gaussian w/ Gradient":
 		od_no_bg = subtract_gradient(data)
-		blur = cv.GaussianBlur(od_no_bg,(11,11),0)
-		fp=findpeaks(method='topology', denoise=None, interpolate=None, scale=False)
-		fp.fit(blur)
-		pks=fp.results['groups0'][:3]
+		blur = ndimage.gaussian_filter(od_no_bg,5,mode='constant')
 
-		guess = [0, 0.5, rp["xc"], rp["yc"], 0.2*width, 0.2*height, 0.0, 0.0]
+		# plt.figure()
+		# plt.imshow(blur)
+		# plt.show()
+		
 		upper_bounds = [defaults.max_od, defaults.max_od, xmax, ymax, width, height, 0.000375, 0.000375]
 		lower_bounds = [-defaults.max_od, 0, xmin, ymin, 0, 0, -0.000375, -0.000375]
+		guess = [0, 0.5, rp["xc"], rp["yc"], 0.2*width, 0.2*height, 0.0, 0.0]
 
-		guesses = []
+		pks=peak_local_max(blur, min_distance=20,exclude_border=2, num_peaks=3)
+		guesses = [guess]
 		for pk in pks:
-			(xc, yc) = pk[0]
-			peak = od_no_bg[px, py]
-			offset = np.mean(od_no_bg)
-			(sigx, sigy) = 15,15
-			guess = [offset, peak, xc, yc, sigx, sigy, 0.0, 0.0]
-			guesses.append(guess)
+			yc = pk[0]
+			xc = pk[1]
+			peak = data[yc, xc]
+			offset = np.mean(data)
+			if peak > 0:
+				(sigx, sigy) = 15, 15
+				guess = [offset, peak, xmin+xc, ymin+yc, sigx, sigy, 0.0, 0.0]
+				guesses.append(guess)
 
 		best_fit = None
 		best_guess = np.inf		
 
-		for g in guesses:
-			res = least_squares(gauss_grad_fit, guess, args=([xaxis, yaxis], od_no_bg), bounds=(lower_bounds, upper_bounds))
-			if not res.success:
-				print("Warning: fit did not converge.")
-			elif res.cost < best_guess:
-				best_guess = res.cost
-				best_fit = res
+		for guess in guesses:
+			print(upper_bounds)
+			print(lower_bounds)
+			print(guess)
+			try:
+				res = least_squares(gauss_grad_fit, guess, args=([xaxis, yaxis], data), bounds=(lower_bounds, upper_bounds))
+				print(res.cost)
+				print(res.x)
+				if not res.success:
+					print("Warning: fit did not converge.")
+				elif res.cost < best_guess:
+					best_guess = res.cost
+					best_fit = res
+			except ValueError as e:
+				print(e)
 
 		res = best_fit
 		fits = {
@@ -140,7 +151,7 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning):
 		(fit_gauss, f_x, f_y) = fitter("Gaussian", data, bounds, xaxis, yaxis, rp, binning)
 		guess = [fit_gauss["offset"], fit_gauss["peak"], fit_gauss["xc"], fit_gauss["sigx"], 0] # q=0 is T/TF=0.78
 		upper_bounds = [fit_gauss["offset"]+0.1, defaults.max_od, xmax, width, 50] # q=50 is T/TF=0.02
-		lower_bounds = [fit_gauss["offset"]-0.1, 0, xmin, 0, -5] # q=-5 is T/TF=8
+		lower_bounds = [fit_gauss["offset"]-0.1, -0.1, xmin, 0, -5] # q=-5 is T/TF=8
 
 		# Integrate out vertical dimension
 		data_int = np.sum(data, axis=0) / height
