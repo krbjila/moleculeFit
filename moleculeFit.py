@@ -191,7 +191,7 @@ class MainWindow(QtGui.QWidget):
 
 		od = np.where(od == np.inf, defaults.max_od, od)
 		od = np.where(od == -np.inf, -defaults.max_od, od)
-		od = np.where(od == np.nan, defaults.max_od, od) # Check if it makes sense
+		od = np.where(np.isnan(od), defaults.max_od, od) # Check if it makes sense
 
 		self.data["od"] = od
 
