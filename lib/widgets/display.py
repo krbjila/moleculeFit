@@ -46,6 +46,7 @@ class PlotGroup(QtGui.QWidget):
 		"colorbar": False,
 		"clickable": False,
 		"xyRel": (0,0),
+		"angle": 0.
 	}
 
 
@@ -177,6 +178,10 @@ class PlotGroup(QtGui.QWidget):
 			"c": color
 		}]
 
+	def setAngle(self, flag, index, angle):
+		d = self.lookup(flag, index)
+		d["angle"] = angle
+
 	def setXYRelProfile(self, index, xyrel):
 		self.profiles[index]["xyRel"] = xyrel
 
@@ -193,6 +198,9 @@ class PlotGroup(QtGui.QWidget):
 		color = properties["color"]
 		number = properties["number"]
 		colorbar = properties["colorbar"]
+		angle = properties["angle"]
+
+		angle *= np.pi/180.
 
 		ax.clear()
 
@@ -227,10 +235,26 @@ class PlotGroup(QtGui.QWidget):
 				ax.add_patch(p)
 
 		if cross:
+			# main crosshair
 			xline = ((0, defaults.dim_image[0]), (cross[1], cross[1]))
 			yline = ((cross[0], cross[0]), (0, defaults.dim_image[1]))
 			ax.add_line(Line2D(xline[0], xline[1], color=crossColors[0]))
 			ax.add_line(Line2D(yline[0], yline[1], color=crossColors[1]))
+
+			# angled crosshair
+			length_x = 20
+			length_y = 10
+			pts = [[cross[0], cross[1]-length_y], [cross[0]+length_x, cross[1]], [cross[0], cross[1]+length_y], [cross[0]-length_x, cross[1]]]
+
+			for pt in pts:
+				temp = deepcopy(pt)
+				pt[0] = cross[0] + (temp[0] - cross[0])*np.cos(angle) - (temp[1] - cross[1])*np.sin(angle)
+				pt[1] = cross[1] + (temp[1] - cross[1])*np.cos(angle) + (temp[0] - cross[0])*np.sin(angle)
+
+			xangle = ((pts[0][0], pts[2][0]), (pts[0][1], pts[2][1]))
+			yangle = ((pts[1][0], pts[3][0]), (pts[1][1], pts[3][1]))
+			ax.add_line(Line2D(xangle[0], xangle[1], color="r"))
+			ax.add_line(Line2D(yangle[0], yangle[1], color="r"))
 
 
 		# # Need to do the following to get the z data to show up in the toolbar

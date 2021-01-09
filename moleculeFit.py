@@ -155,7 +155,7 @@ class MainWindow(QtGui.QWidget):
 
 	def _fit(self):
 		(main, signal, background) = self.roi.getValues()
-		(fitfunction, auto_fit, auto_origin, upload_both) = self.analysis.getValues()
+		(fitfunction, auto_fit, auto_origin, upload_both, angle) = self.analysis.getValues()
 
 		for (i, roi) in enumerate(signal):
 			bounds = self.getArrayBounds(roi)
@@ -167,7 +167,7 @@ class MainWindow(QtGui.QWidget):
 
 			rp = self.region_params[2*i]["od"]
 
-			(fits, fitted_x, fitted_y) = fitfunctions.fitter(fitfunction, data, bounds, xaxis, yaxis, rp, self.binning)
+			(fits, fitted_x, fitted_y) = fitfunctions.fitter(fitfunction, data, bounds, xaxis, yaxis, rp, self.binning, angle)
 			self.fits[i] = fits
 			self.plotGroup.setFitData("p", 2*i, (fitted_x, fitted_y))
 			self.plotGroup.setFitAxes("p", 2*i, (xaxis - int(rp["xc"]), yaxis - int(rp["yc"])))
@@ -199,11 +199,15 @@ class MainWindow(QtGui.QWidget):
 		self.display_options.setCrosshairs(x, y)
 
 	def analysisOptionsChanged(self):
-		(fit_function, autofit, origin, upload_both) = self.analysis.getValues()
+		(fit_function, autofit, origin, upload_both, angle) = self.analysis.getValues()
 		self.fit_function = fit_function
 		self.auto_fit = autofit
 		self.auto_origin = origin
 		self.upload_both = upload_both
+		self.angle = angle
+
+		self.plotGroup.setAngle("m", 0, angle)
+		self.mainROIChanged()
 
 	def displayOptionsChanged(self):
 		(frame, vmin, vmax, x, y) = self.display_options.getState()
@@ -318,7 +322,8 @@ class MainWindow(QtGui.QWidget):
 				self.fits[0]["yc"], 											# yc0 (px)
 				self.fits[0]["offset"],											# Offset 0
 				self.fits[0]["gradx"], 											# xgrad (OD/px)
-				self.fits[0]["grady"],											# ygrad (OD/px)
+				self.fits[0]["grady"],											# ygrad (OD/px)			
+				self.fits[0]["angle"],											# Angle								
 				# signal[1][2],													# Fit region 1 width
 				# signal[1][3],													# Fit region 1 height
 				# self.fits[1]["peak"],											# Peak OD 1
@@ -340,6 +345,7 @@ class MainWindow(QtGui.QWidget):
 				self.fits[0]["offset"],											# Offset 0
 				self.fits[0]["gradx"], 											# xgrad0 (OD/px)
 				self.fits[0]["grady"],											# ygrad0 (OD/px)
+				self.fits[0]["angle"],
 				self.fits[1]["peak"],											# Peak OD 1
 				self.fits[1]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# sigx1 (um)
 				self.fits[1]["sigy"]*defaults.pixel_size*1e6*self.binning, 		# sigx1 (um)
@@ -348,6 +354,7 @@ class MainWindow(QtGui.QWidget):
 				self.fits[1]["offset"],											# Offset 1
 				self.fits[1]["gradx"], 											# xgrad1 (OD/px)
 				self.fits[1]["grady"],											# ygrad1 (OD/px)
+				self.fits[0]["angle"],
 			]
 			return arr
 

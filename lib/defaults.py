@@ -64,7 +64,8 @@ fit_points = 10. # Points to plot per pixel
 # Imaging parameters #
 ######################
 
-pixel_size = 2.58e-6
+pixel_size = 2.58e-6 # Axial
+# pixel_size = 1e-6 # Vertical, approximate!!!
 
 alpha = 2.0
 c_sat_eff = (19000/4.0)

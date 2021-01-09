@@ -52,26 +52,34 @@ class AnalysisOptions(QtGui.QWidget):
 		self.originButton.clicked.connect(self.upload_pressed)
 		self.group_layout.addWidget(self.originButton, 2, 0, 1, 2)
 
+		self.angleLabel = QtGui.QLabel("Fit rotation angle")
+		self.angleEdit = QtGui.QLineEdit()
+		self.angleEdit.setText("0")
+		self.angleEdit.editingFinished.connect(self.option_changed)
+
+		self.group_layout.addWidget(self.angleLabel, 3, 0)
+		self.group_layout.addWidget(self.angleEdit, 3, 1)
+
 		self.autofitLabel = QtGui.QLabel("Auto fit?")
-		self.group_layout.addWidget(self.autofitLabel, 3, 0)
+		self.group_layout.addWidget(self.autofitLabel, 4, 0)
 
 		self.autofitCheck = QtGui.QCheckBox()
 		self.autofitCheck.stateChanged.connect(self.option_changed)
-		self.group_layout.addWidget(self.autofitCheck, 3, 1)
+		self.group_layout.addWidget(self.autofitCheck, 4, 1)
 
 		self.originLabel = QtGui.QLabel("Auto Origin?")
-		self.group_layout.addWidget(self.originLabel, 4, 0)
+		self.group_layout.addWidget(self.originLabel, 5, 0)
 
 		self.originCheck = QtGui.QCheckBox()
 		self.originCheck.stateChanged.connect(self.option_changed)
-		self.group_layout.addWidget(self.originCheck, 4, 1)
+		self.group_layout.addWidget(self.originCheck, 5, 1)
 
 		self.uploadBothLabel = QtGui.QLabel("Report both fits (G. only)")
-		self.group_layout.addWidget(self.uploadBothLabel, 5, 0)
+		self.group_layout.addWidget(self.uploadBothLabel, 6, 0)
 
 		self.uploadBothCheck = QtGui.QCheckBox()
 		self.uploadBothCheck.stateChanged.connect(self.option_changed)
-		self.group_layout.addWidget(self.uploadBothCheck, 5, 1)
+		self.group_layout.addWidget(self.uploadBothCheck, 6, 1)
 
 		self.group_layout.setColumnStretch(2,1)
 		self.group.setLayout(self.group_layout)
@@ -87,11 +95,18 @@ class AnalysisOptions(QtGui.QWidget):
 		self.upload.emit()
 
 	def getValues(self):
+		try: 
+			angle = float(self.angleEdit.text())
+		except:
+			angle = 0
+			print("Couldn't parse angle, setting to 0")
+
 		out = (
 			defaults.fit_functions[self.analysisCombo.currentIndex()],
 			self.autofitCheck.isChecked(),
 			self.originCheck.isChecked(),
-			self.uploadBothCheck.isChecked()
+			self.uploadBothCheck.isChecked(),
+			angle
 		)
 		return out
 
@@ -135,6 +150,8 @@ class AnalysisOptions(QtGui.QWidget):
 			if origin.FindWorksheet(short_name) is None:
 				origin.CreatePage(2, short_name, "KRbInt")
 		origin.Execute("{}!page.longname$ = {}".format(short_name, long_name))
+
+		print data
 
 		for (i, x) in enumerate(data):
 			ret = origin.PutWorksheet("[{}]Sheet1".format(short_name), x, -1, i)
