@@ -20,11 +20,11 @@ dim_display_opt = (dim_settings_col[0]/2, 200)
 dim_profile = (dim_profile_col[0], 200)
 dim_zoom = (dim_zoom_col[0], 200)
 
-roi_default = [150, 133, 100, 100]
-r00_signal_default = [150, 133, 50, 20]
-r10_signal_default = [150, 173, 50, 20]
-r00_background_default = [150, 153, 50, 20]
-r10_background_default = [150, 193, 50, 20]
+roi_default = [139, 153, 100, 200]
+r00_signal_default = [139, 88, 40, 20]
+r10_signal_default = [139, 168, 40, 20]
+r00_background_default = [139, 108, 40, 20]
+r10_background_default = [139, 148, 40, 20]
 
 dim_image = [512, 1024]
 

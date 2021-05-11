@@ -31,7 +31,7 @@ class DisplayOptions(QtGui.QWidget):
 		self.setFixedSize(defaults.dim_display_opt[0], defaults.dim_display_opt[0])
 		self.populate()
 
-		self.od = [0, 1.0]
+		self.od = [0, 0.5]
 		self.counts = [500, 5000]
 
 	def populate(self):

@@ -113,7 +113,7 @@ class AnalysisOptions(QtGui.QWidget):
 	def option_changed(self):
 		self.changed.emit()
 
-	def upload_origin(self, data, fitfunction=None, uploadBoth=False):
+	def upload_origin(self, data, fitfunction="", uploadBoth=False):
 		pid = 'Origin.ApplicationSI'
 		origin = win32com.client.Dispatch(pid)
 

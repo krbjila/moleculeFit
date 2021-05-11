@@ -343,18 +343,18 @@ class MainWindow(QtGui.QWidget):
 				self.fits[0]["xc"], 											# xc0 (px)
 				self.fits[0]["yc"], 											# yc0 (px)
 				self.fits[0]["offset"],											# Offset 0
-				self.fits[0]["gradx"], 											# xgrad0 (OD/px)
-				self.fits[0]["grady"],											# ygrad0 (OD/px)
-				self.fits[0]["angle"],
+				# self.fits[0]["gradx"], 											# xgrad0 (OD/px)
+				# self.fits[0]["grady"],											# ygrad0 (OD/px)
+				# self.fits[0]["angle"],
 				self.fits[1]["peak"],											# Peak OD 1
 				self.fits[1]["sigx"]*defaults.pixel_size*1e6*self.binning, 		# sigx1 (um)
 				self.fits[1]["sigy"]*defaults.pixel_size*1e6*self.binning, 		# sigx1 (um)
 				self.fits[1]["xc"], 											# xc1 (px)
 				self.fits[1]["yc"], 											# yc1 (px)
-				self.fits[1]["offset"],											# Offset 1
-				self.fits[1]["gradx"], 											# xgrad1 (OD/px)
-				self.fits[1]["grady"],											# ygrad1 (OD/px)
-				self.fits[0]["angle"],
+				# self.fits[1]["offset"],											# Offset 1
+				# self.fits[1]["gradx"], 											# xgrad1 (OD/px)
+				# self.fits[1]["grady"],											# ygrad1 (OD/px)
+				# self.fits[0]["angle"],
 			]
 			return arr
 

@@ -150,6 +150,11 @@ def fitter(fname, data, bounds, xaxis, yaxis, rp, binning, angle=0):
 				print(e)
 
 		res = best_fit
+
+		# Try to get rid of big Gaussians fit when there's no signal
+		# if res.x[4] > 0.5 * width and res.x[5] > 0.5 * height and res.x[1] < 0.02:
+		# 	res.x[1] = 0
+
 		fits = {
 			"f": fname,
 			"offset": res.x[0],
